@@ -32,7 +32,17 @@
 	import SaveIcon from '@lucide/svelte/icons/save';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
-	const makeDefaultRecipe = (): Recipe => structuredClone(defaultRecipe);
+	const cloneRecipe = (source: Recipe): Recipe => ({
+		title: source.title,
+		description: source.description,
+		servings: source.servings,
+		prepMinutes: source.prepMinutes,
+		cookMinutes: source.cookMinutes,
+		ingredients: [...source.ingredients],
+		steps: [...source.steps],
+		theme: source.theme
+	});
+	const makeDefaultRecipe = (): Recipe => cloneRecipe(defaultRecipe);
 	const makeEmptyRecipe = (): Recipe => ({
 		title: '',
 		description: '',
@@ -124,7 +134,7 @@
 			return;
 		}
 
-		recipe = structuredClone(selected.recipe);
+			recipe = cloneRecipe(selected.recipe);
 		saveName = selected.name;
 		selectedSavedId = selected.id;
 		toast.success(`Loaded \"${selected.name}\"`);
