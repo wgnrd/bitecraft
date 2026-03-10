@@ -212,7 +212,7 @@
 	<div class="pointer-events-none absolute right-[-8rem] top-28 -z-10 hidden size-[36rem] rounded-full bg-radial from-orange-300/35 to-transparent blur-3xl lg:block"></div>
 
 	<header class="sticky top-0 z-40 border-b border-black/5 bg-background/75 backdrop-blur-xl">
-		<div class="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+		<div class="mx-auto flex w-full max-w-[118rem] items-center gap-3 px-4 py-3 sm:px-6 lg:px-10">
 			<div class="flex min-w-0 items-center gap-3">
 				<div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
 					<ChefHatIcon class="size-5" />
@@ -317,7 +317,7 @@
 		</div>
 	</header>
 
-	<main class="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8 lg:pt-6">
+		<main class="mx-auto w-full max-w-[118rem] px-4 pt-4 sm:px-6 lg:px-10 lg:pt-5">
 		<div class="mb-4 flex items-center gap-2 md:hidden">
 			<p class="min-w-0 flex-1 truncate text-sm font-medium text-foreground/90">{displayRecipeName}</p>
 			<Badge.Badge
@@ -332,7 +332,7 @@
 
 		<div class="lg:hidden">
 			<Tabs.Root bind:value={activeMobileTab} class="w-full gap-4">
-				<Tabs.List class="grid h-10 w-full grid-cols-2 rounded-xl bg-white/70 p-1 shadow-sm backdrop-blur">
+				<Tabs.List class="grid h-11 w-full grid-cols-2 rounded-2xl border border-stone-200/70 bg-white/80 p-1 shadow-sm backdrop-blur">
 					<Tabs.Trigger value="editor">Editor</Tabs.Trigger>
 					<Tabs.Trigger value="preview">Preview</Tabs.Trigger>
 				</Tabs.List>
@@ -340,17 +340,29 @@
 					<RecipeEditor {recipe} onRecipeChange={handleRecipeChange} />
 				</Tabs.Content>
 				<Tabs.Content value="preview">
-					<RecipePreview {recipe} />
+					<div class="rounded-3xl border border-stone-200/70 bg-white/45 p-3 shadow-lg shadow-stone-200/40 sm:p-4">
+						<RecipePreview {recipe} />
+					</div>
 				</Tabs.Content>
 			</Tabs.Root>
 		</div>
 
-		<div class="hidden grid-cols-12 gap-6 lg:grid">
-			<section class="app-scrollbar col-span-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1">
-				<RecipeEditor {recipe} onRecipeChange={handleRecipeChange} />
-			</section>
-			<section class="col-span-7">
-				<div class="sticky top-24">
+			<div class="hidden grid-cols-14 gap-7 pb-5 lg:grid">
+				<section class="app-scrollbar col-span-5 max-h-[calc(100vh-7.2rem)] overflow-y-auto pr-2">
+					<div class="pr-1">
+						<RecipeEditor {recipe} onRecipeChange={handleRecipeChange} />
+					</div>
+				</section>
+				<section class="col-span-9">
+					<div
+						class="sticky top-23 min-h-[calc(100vh-7.5rem)] rounded-[2rem] border border-stone-200/70 bg-linear-to-b from-white/70 via-white/55 to-white/40 p-6 shadow-xl shadow-stone-200/50 backdrop-blur xl:p-7"
+					>
+						<div class="mb-5 flex items-center justify-between px-1">
+							<div class="space-y-1">
+								<p class="text-[0.7rem] font-semibold tracking-[0.18em] text-amber-700 uppercase">Live Preview</p>
+								<p class="text-sm text-stone-600">Typography and spacing update as you edit.</p>
+						</div>
+					</div>
 					<RecipePreview {recipe} />
 				</div>
 			</section>

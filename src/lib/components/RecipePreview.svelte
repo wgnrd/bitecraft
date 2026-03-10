@@ -16,11 +16,12 @@
 			accent: 'from-amber-500 via-orange-400 to-yellow-400',
 			title: 'font-serif text-stone-900',
 			description: 'text-stone-700',
-			metaBadge: 'border-amber-300/70 bg-amber-100/90 text-amber-900',
+			metaBadge: 'border-amber-300/65 bg-amber-100/80 text-amber-950',
 			sectionTitle: 'font-serif text-stone-900',
 			bullet: 'bg-amber-500',
 			stepNumber: 'bg-amber-200 text-amber-900',
-			divider: 'bg-amber-200/70'
+			divider: 'bg-amber-200/70',
+			panel: 'bg-white/65'
 		},
 		minimal: {
 			container: 'bg-white',
@@ -31,7 +32,8 @@
 			sectionTitle: 'font-medium tracking-[0.12em] uppercase text-stone-700',
 			bullet: 'bg-stone-500',
 			stepNumber: 'border border-stone-200 bg-stone-100 text-stone-700',
-			divider: 'bg-stone-200'
+			divider: 'bg-stone-200',
+			panel: 'bg-stone-50/65'
 		},
 		bold: {
 			container: 'bg-linear-to-br from-rose-100 via-orange-50 to-yellow-100',
@@ -42,61 +44,71 @@
 			sectionTitle: 'font-extrabold tracking-[0.14em] uppercase text-rose-900',
 			bullet: 'bg-rose-700',
 			stepNumber: 'bg-rose-900 text-rose-50',
-			divider: 'bg-rose-200'
+			divider: 'bg-rose-200',
+			panel: 'bg-white/60'
 		}
 	} as const;
 
 	const cardTheme = $derived(themeStyles[recipe.theme]);
 </script>
 
-<Card.Root
-	class={cn(
-		'mx-auto w-full max-w-4xl overflow-hidden rounded-2xl border border-black/5 shadow-2xl shadow-stone-200/70 transition-all duration-300',
-		cardTheme.container
-	)}
->
-	<div class={cn('h-1.5 w-full bg-linear-to-r', cardTheme.accent)}></div>
+	<Card.Root
+		class={cn(
+			'mx-auto w-full max-w-none overflow-hidden rounded-[1.8rem] border border-stone-200/80 shadow-2xl shadow-stone-200/70 transition-all duration-300',
+			cardTheme.container
+		)}
+	>
+	<div class={cn('h-2 w-full bg-linear-to-r', cardTheme.accent)}></div>
 
-	<Card.Header class="gap-5 px-6 pb-4 pt-6 sm:px-8 sm:pt-8">
-		<div class="space-y-2">
-			<Card.Title class={cn('text-3xl leading-tight sm:text-4xl', cardTheme.title)}>
+	<Card.Header class="gap-7 px-7 pb-6 pt-8 sm:px-11 sm:pt-11 xl:px-14 xl:pb-7">
+		<div class="space-y-3">
+			<Card.Title class={cn('text-[2rem] leading-[1.08] sm:text-[2.6rem]', cardTheme.title)}>
 				{recipe.title || 'Untitled recipe'}
 			</Card.Title>
-			<Card.Description class={cn('max-w-3xl text-sm leading-relaxed sm:text-base', cardTheme.description)}>
+			<Card.Description class={cn('max-w-3xl text-base leading-8 sm:text-[1.06rem]', cardTheme.description)}>
 				{recipe.description || 'Add a short description to introduce your dish and set the tone.'}
 			</Card.Description>
 		</div>
 
-		<div class="flex flex-wrap gap-2">
-			<Badge.Badge variant="outline" class={cn('gap-1.5 rounded-full px-3 py-1 text-xs font-semibold', cardTheme.metaBadge)}>
+		<div class="flex flex-wrap gap-2.5">
+			<Badge.Badge
+				variant="outline"
+				class={cn('gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-sm backdrop-blur', cardTheme.metaBadge)}
+			>
 				<Clock3Icon class="size-3.5" />
 				Prep {recipe.prepMinutes ?? '-'} min
 			</Badge.Badge>
-			<Badge.Badge variant="outline" class={cn('gap-1.5 rounded-full px-3 py-1 text-xs font-semibold', cardTheme.metaBadge)}>
+			<Badge.Badge
+				variant="outline"
+				class={cn('gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-sm backdrop-blur', cardTheme.metaBadge)}
+			>
 				<FlameIcon class="size-3.5" />
 				Cook {recipe.cookMinutes ?? '-'} min
 			</Badge.Badge>
-			<Badge.Badge variant="outline" class={cn('gap-1.5 rounded-full px-3 py-1 text-xs font-semibold', cardTheme.metaBadge)}>
+			<Badge.Badge
+				variant="outline"
+				class={cn('gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-sm backdrop-blur', cardTheme.metaBadge)}
+			>
 				<UsersIcon class="size-3.5" />
 				Serves {recipe.servings ?? '-'}
 			</Badge.Badge>
 		</div>
 	</Card.Header>
 
-	<Separator.Root class={cn('mx-6 sm:mx-8', cardTheme.divider)} />
+	<Separator.Root class={cn('mx-7 sm:mx-11 xl:mx-14', cardTheme.divider)} />
 
-	<Card.Content class="grid gap-8 px-6 py-6 sm:grid-cols-[0.95fr_1.35fr] sm:px-8 sm:py-8">
-		<section class="space-y-4">
-			<h3 class={cn('text-xs', cardTheme.sectionTitle)}>Ingredients</h3>
+	<Card.Content class="grid gap-7 px-7 py-7 sm:grid-cols-[1.08fr_1.6fr] sm:gap-10 sm:px-11 sm:py-10 xl:px-14 xl:py-11">
+		<section class={cn('space-y-5 rounded-2xl border border-white/50 p-5 sm:p-6', cardTheme.panel)}>
+			<h3 class={cn('text-[0.7rem]', cardTheme.sectionTitle)}>Ingredients</h3>
 			{#if recipe.ingredients.length === 0}
-				<p class="rounded-xl border border-dashed border-muted-foreground/30 px-3 py-4 text-sm text-muted-foreground">
+				<p class="rounded-xl border border-dashed border-muted-foreground/30 px-4 py-5 text-base leading-8 text-muted-foreground">
 					Add your first ingredient to get started.
 				</p>
 			{:else}
-				<ul class="space-y-3">
+				<ul class="space-y-4">
 					{#each recipe.ingredients as ingredient, index (`${ingredient}-${index}`)}
-						<li class="flex items-start gap-3 text-sm leading-relaxed text-foreground/90">
-							<span class={cn('mt-2 inline-block size-1.5 rounded-full', cardTheme.bullet)}></span>
+						<li class="flex items-start gap-3.5 text-base leading-8 text-foreground/90">
+							<span class={cn('mt-3 inline-block size-1.5 rounded-full', cardTheme.bullet)}></span>
 							<span>{ingredient}</span>
 						</li>
 					{/each}
@@ -104,19 +116,19 @@
 			{/if}
 		</section>
 
-		<section class="space-y-4">
-			<h3 class={cn('text-xs', cardTheme.sectionTitle)}>Method</h3>
+		<section class={cn('space-y-5 rounded-2xl border border-white/50 p-5 sm:p-6', cardTheme.panel)}>
+			<h3 class={cn('text-[0.7rem]', cardTheme.sectionTitle)}>Method</h3>
 			{#if recipe.steps.length === 0}
-				<p class="rounded-xl border border-dashed border-muted-foreground/30 px-3 py-4 text-sm text-muted-foreground">
+				<p class="rounded-xl border border-dashed border-muted-foreground/30 px-4 py-5 text-base leading-8 text-muted-foreground">
 					Add your first step to outline how to cook the dish.
 				</p>
 			{:else}
-				<ol class="space-y-4">
+				<ol class="space-y-6">
 					{#each recipe.steps as step, index (`${step}-${index}`)}
-						<li class="flex gap-3 text-sm leading-7 text-foreground/90">
+						<li class="flex gap-4 text-base leading-8 text-foreground/90">
 							<span
 								class={cn(
-									'mt-1 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
+									'mt-1 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold shadow-sm',
 									cardTheme.stepNumber
 								)}
 							>
