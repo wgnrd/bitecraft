@@ -1,0 +1,414 @@
+<script lang="ts">
+	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	import RecipeEditor from '$lib/components/RecipeEditor.svelte';
+	import RecipePreview from '$lib/components/RecipePreview.svelte';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
+	import * as Badge from '$lib/components/ui/badge';
+	import * as Button from '$lib/components/ui/button';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import * as Tabs from '$lib/components/ui/tabs';
+	import * as Textarea from '$lib/components/ui/textarea';
+	import { Toaster } from '$lib/components/ui/sonner';
+	import {
+		clearRecipe,
+		deleteRecipeSnapshot,
+		loadRecipe,
+		loadSavedRecipes,
+		normalizeRecipe,
+		saveRecipe,
+		saveRecipeSnapshot
+	} from '$lib/storage';
+	import { defaultRecipe } from '$lib/defaultRecipe';
+	import type { Recipe, SavedRecipe } from '$lib/types';
+	import ChefHatIcon from '@lucide/svelte/icons/chef-hat';
+	import CircleEllipsisIcon from '@lucide/svelte/icons/circle-ellipsis';
+	import DownloadIcon from '@lucide/svelte/icons/download';
+	import FileJsonIcon from '@lucide/svelte/icons/file-json';
+	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
+	import PlusIcon from '@lucide/svelte/icons/plus';
+	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
+	import SaveIcon from '@lucide/svelte/icons/save';
+	import Trash2Icon from '@lucide/svelte/icons/trash-2';
+
+	const makeDefaultRecipe = (): Recipe => structuredClone(defaultRecipe);
+	const makeEmptyRecipe = (): Recipe => ({
+		title: '',
+		description: '',
+		servings: null,
+		prepMinutes: null,
+		cookMinutes: null,
+		ingredients: [],
+		steps: [],
+		theme: 'classic'
+	});
+
+	let recipe = $state<Recipe>(makeDefaultRecipe());
+	let saveTimer: ReturnType<typeof setTimeout> | undefined;
+	let hydrated = $state(false);
+	let activeMobileTab = $state('editor');
+
+	let isResetDialogOpen = $state(false);
+	let isImportDialogOpen = $state(false);
+	let isDeleteDialogOpen = $state(false);
+
+	let savedRecipes = $state<SavedRecipe[]>([]);
+	let selectedSavedId = $state('');
+	let pendingDeleteId = $state('');
+	let saveName = $state('');
+	let importJsonText = $state('');
+	let importError = $state('');
+	let lastPersistedFingerprint = $state('');
+	let lastDraftSavedAt = $state('');
+
+	const recipeFingerprint = $derived(JSON.stringify(recipe));
+	const isDirty = $derived(hydrated && recipeFingerprint !== lastPersistedFingerprint);
+	const displayRecipeName = $derived(recipe.title.trim() || saveName.trim() || 'Untitled recipe');
+
+	const formatSavedTime = (isoDate: string): string =>
+		new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit' }).format(new Date(isoDate));
+
+	onMount(() => {
+		const storedRecipe = loadRecipe();
+		if (storedRecipe) {
+			recipe = storedRecipe;
+		}
+
+		savedRecipes = loadSavedRecipes();
+		saveName = recipe.title.trim() || 'My recipe';
+		lastPersistedFingerprint = JSON.stringify(recipe);
+		lastDraftSavedAt = new Date().toISOString();
+		hydrated = true;
+	});
+
+	$effect(() => {
+		if (!browser || !hydrated) {
+			return;
+		}
+
+		const nextFingerprint = recipeFingerprint;
+		if (saveTimer) {
+			clearTimeout(saveTimer);
+		}
+
+		saveTimer = setTimeout(() => {
+			saveRecipe(recipe);
+			lastPersistedFingerprint = nextFingerprint;
+			lastDraftSavedAt = new Date().toISOString();
+		}, 450);
+
+		return () => {
+			if (saveTimer) {
+				clearTimeout(saveTimer);
+			}
+		};
+	});
+
+	const handleRecipeChange = (nextRecipe: Recipe) => {
+		recipe = nextRecipe;
+	};
+
+	const saveCurrentSnapshot = () => {
+		const name = recipe.title.trim() || saveName.trim() || `Recipe ${savedRecipes.length + 1}`;
+		const snapshot = saveRecipeSnapshot(recipe, name, selectedSavedId || undefined);
+		savedRecipes = loadSavedRecipes();
+		selectedSavedId = snapshot.id;
+		saveName = snapshot.name;
+		toast.success('Recipe snapshot saved');
+	};
+
+	const loadRecipeById = (id: string) => {
+		const selected = savedRecipes.find((entry) => entry.id === id);
+		if (!selected) {
+			return;
+		}
+
+		recipe = structuredClone(selected.recipe);
+		saveName = selected.name;
+		selectedSavedId = selected.id;
+		toast.success(`Loaded \"${selected.name}\"`);
+	};
+
+	const queueDeleteRecipeById = (id: string) => {
+		if (!id) {
+			return;
+		}
+		pendingDeleteId = id;
+		isDeleteDialogOpen = true;
+	};
+
+	const confirmDeleteRecipe = () => {
+		const selected = savedRecipes.find((entry) => entry.id === pendingDeleteId);
+		if (!selected) {
+			return;
+		}
+
+		deleteRecipeSnapshot(selected.id);
+		savedRecipes = loadSavedRecipes();
+		if (selectedSavedId === selected.id) {
+			selectedSavedId = '';
+		}
+		pendingDeleteId = '';
+		toast.success(`Deleted \"${selected.name}\"`);
+	};
+
+	const createNewRecipe = () => {
+		recipe = makeEmptyRecipe();
+		saveName = 'My recipe';
+		selectedSavedId = '';
+		clearRecipe();
+		toast.info('Started a fresh recipe');
+	};
+
+	const resetRecipe = () => {
+		clearRecipe();
+		recipe = makeDefaultRecipe();
+		saveName = recipe.title;
+		selectedSavedId = '';
+		toast.success('Recipe reset to default');
+	};
+
+	const openImportDialog = () => {
+		importJsonText = JSON.stringify(makeEmptyRecipe(), null, 2);
+		importError = '';
+		isImportDialogOpen = true;
+	};
+
+	const applyImportJson = () => {
+		importError = '';
+		try {
+			const parsed = JSON.parse(importJsonText);
+			const normalized = normalizeRecipe(parsed);
+
+			if (!normalized) {
+				importError = 'Invalid JSON shape. Expected a Recipe object.';
+				return;
+			}
+
+			recipe = normalized;
+			saveName = normalized.title || 'My recipe';
+			selectedSavedId = '';
+			isImportDialogOpen = false;
+			toast.success('Recipe imported successfully');
+		} catch {
+			importError = 'Could not parse JSON. Please check syntax and try again.';
+		}
+	};
+
+	const copyRecipeJson = async () => {
+		if (!browser || !navigator.clipboard) {
+			toast.error('Clipboard is not available in this browser');
+			return;
+		}
+
+		await navigator.clipboard.writeText(JSON.stringify(recipe, null, 2));
+		toast.success('Recipe JSON copied');
+	};
+</script>
+
+<div class="relative min-h-screen overflow-x-clip bg-linear-to-b from-stone-100 via-amber-50 to-orange-100/70 pb-10">
+	<div class="pointer-events-none absolute inset-0 -z-10 noise-overlay opacity-40"></div>
+	<div class="pointer-events-none absolute right-[-8rem] top-28 -z-10 hidden size-[36rem] rounded-full bg-radial from-orange-300/35 to-transparent blur-3xl lg:block"></div>
+
+	<header class="sticky top-0 z-40 border-b border-black/5 bg-background/75 backdrop-blur-xl">
+		<div class="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+			<div class="flex min-w-0 items-center gap-3">
+				<div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+					<ChefHatIcon class="size-5" />
+				</div>
+				<div class="min-w-0">
+					<p class="text-[11px] font-semibold tracking-[0.18em] text-amber-700 uppercase">BiteCraft</p>
+					<h1 class="truncate text-base font-semibold text-stone-900 sm:text-lg">Recipe Card Builder</h1>
+				</div>
+			</div>
+
+			<div class="mx-auto hidden min-w-0 max-w-[30rem] flex-1 items-center justify-center gap-2 md:flex">
+				<p class="truncate text-sm font-medium text-foreground/90">{displayRecipeName}</p>
+				<Badge.Badge
+					variant="outline"
+					class={isDirty
+						? 'border-amber-200 bg-amber-100/70 text-amber-900'
+						: 'border-emerald-200 bg-emerald-100/70 text-emerald-900'}
+				>
+					{isDirty ? 'Unsaved changes' : 'Saved'}
+				</Badge.Badge>
+				{#if lastDraftSavedAt}
+					<span class="text-xs text-muted-foreground">Draft {formatSavedTime(lastDraftSavedAt)}</span>
+				{/if}
+			</div>
+
+			<div class="ml-auto flex items-center gap-2">
+				<Button.Root onclick={saveCurrentSnapshot} class="gap-2">
+					<SaveIcon class="size-4" />
+					Save
+				</Button.Root>
+
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger>
+						<Button.Root variant="outline" size="icon" aria-label="Open actions menu">
+							<CircleEllipsisIcon class="size-4" />
+						</Button.Root>
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content align="end" class="w-64">
+						<DropdownMenu.Label>Recipe actions</DropdownMenu.Label>
+						<DropdownMenu.Separator />
+						<DropdownMenu.Item onclick={createNewRecipe}>
+							<PlusIcon class="size-4" />
+							New recipe
+						</DropdownMenu.Item>
+						<DropdownMenu.Item onclick={openImportDialog}>
+							<FileJsonIcon class="size-4" />
+							Import JSON
+						</DropdownMenu.Item>
+						<DropdownMenu.Item onclick={copyRecipeJson}>
+							<DownloadIcon class="size-4" />
+							Copy JSON
+						</DropdownMenu.Item>
+						<DropdownMenu.Separator />
+
+						<DropdownMenu.Sub>
+							<DropdownMenu.SubTrigger>
+								<FolderOpenIcon class="size-4" />
+								Load saved
+							</DropdownMenu.SubTrigger>
+							<DropdownMenu.SubContent class="w-64">
+								{#if savedRecipes.length === 0}
+									<DropdownMenu.Item disabled>No saved recipes</DropdownMenu.Item>
+								{:else}
+									{#each savedRecipes as saved}
+										<DropdownMenu.Item onclick={() => loadRecipeById(saved.id)}>
+											<span class="truncate">{saved.name}</span>
+										</DropdownMenu.Item>
+									{/each}
+								{/if}
+							</DropdownMenu.SubContent>
+						</DropdownMenu.Sub>
+
+						<DropdownMenu.Sub>
+							<DropdownMenu.SubTrigger>
+								<Trash2Icon class="size-4" />
+								Delete saved
+							</DropdownMenu.SubTrigger>
+							<DropdownMenu.SubContent class="w-64">
+								{#if savedRecipes.length === 0}
+									<DropdownMenu.Item disabled>No saved recipes</DropdownMenu.Item>
+								{:else}
+									{#each savedRecipes as saved}
+										<DropdownMenu.Item
+											variant="destructive"
+											onclick={() => queueDeleteRecipeById(saved.id)}
+										>
+											<span class="truncate">{saved.name}</span>
+										</DropdownMenu.Item>
+									{/each}
+								{/if}
+							</DropdownMenu.SubContent>
+						</DropdownMenu.Sub>
+
+						<DropdownMenu.Separator />
+						<DropdownMenu.Item variant="destructive" onclick={() => (isResetDialogOpen = true)}>
+							<RotateCcwIcon class="size-4" />
+							Reset to default
+						</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</div>
+		</div>
+	</header>
+
+	<main class="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8 lg:pt-6">
+		<div class="mb-4 flex items-center gap-2 md:hidden">
+			<p class="min-w-0 flex-1 truncate text-sm font-medium text-foreground/90">{displayRecipeName}</p>
+			<Badge.Badge
+				variant="outline"
+				class={isDirty
+					? 'border-amber-200 bg-amber-100/70 text-amber-900'
+					: 'border-emerald-200 bg-emerald-100/70 text-emerald-900'}
+			>
+				{isDirty ? 'Unsaved' : 'Saved'}
+			</Badge.Badge>
+		</div>
+
+		<div class="lg:hidden">
+			<Tabs.Root bind:value={activeMobileTab} class="w-full gap-4">
+				<Tabs.List class="grid h-10 w-full grid-cols-2 rounded-xl bg-white/70 p-1 shadow-sm backdrop-blur">
+					<Tabs.Trigger value="editor">Editor</Tabs.Trigger>
+					<Tabs.Trigger value="preview">Preview</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="editor">
+					<RecipeEditor {recipe} onRecipeChange={handleRecipeChange} />
+				</Tabs.Content>
+				<Tabs.Content value="preview">
+					<RecipePreview {recipe} />
+				</Tabs.Content>
+			</Tabs.Root>
+		</div>
+
+		<div class="hidden grid-cols-12 gap-6 lg:grid">
+			<section class="app-scrollbar col-span-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1">
+				<RecipeEditor {recipe} onRecipeChange={handleRecipeChange} />
+			</section>
+			<section class="col-span-7">
+				<div class="sticky top-24">
+					<RecipePreview {recipe} />
+				</div>
+			</section>
+		</div>
+	</main>
+</div>
+
+<AlertDialog.Root bind:open={isResetDialogOpen}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Reset recipe?</AlertDialog.Title>
+			<AlertDialog.Description>
+				This restores the default recipe and clears the current browser draft.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={resetRecipe}>Reset</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={isImportDialogOpen}>
+	<AlertDialog.Content class="sm:max-w-2xl">
+		<AlertDialog.Header>
+			<AlertDialog.Title>Import recipe JSON</AlertDialog.Title>
+			<AlertDialog.Description>
+				Paste a JSON object with recipe fields to populate the current draft.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+
+		<div class="space-y-2">
+			<Textarea.Root rows={14} bind:value={importJsonText} class="font-mono text-xs" />
+			{#if importError}
+				<p class="text-sm text-destructive">{importError}</p>
+			{/if}
+		</div>
+
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={applyImportJson}>Import</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={isDeleteDialogOpen}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Delete saved recipe?</AlertDialog.Title>
+			<AlertDialog.Description>
+				This only removes the saved snapshot from browser storage.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={confirmDeleteRecipe}>Delete</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<Toaster richColors closeButton position="top-right" />
