@@ -151,6 +151,8 @@
 	const confirmDeleteRecipe = () => {
 		const selected = savedRecipes.find((entry) => entry.id === pendingDeleteId);
 		if (!selected) {
+			isDeleteDialogOpen = false;
+			pendingDeleteId = '';
 			return;
 		}
 
@@ -160,6 +162,7 @@
 			selectedSavedId = '';
 		}
 		pendingDeleteId = '';
+		isDeleteDialogOpen = false;
 		toast.success(`Deleted \"${selected.name}\"`);
 	};
 
