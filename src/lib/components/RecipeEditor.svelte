@@ -16,10 +16,12 @@
 
 	let {
 		recipe,
-		onRecipeChange
+		onRecipeChange,
+		readonly = false
 	}: {
 		recipe: Recipe;
 		onRecipeChange: (nextRecipe: Recipe) => void;
+		readonly?: boolean;
 	} = $props();
 
 	let ingredientDraft = $state('');
@@ -35,6 +37,10 @@
 		| null = $state(null);
 
 	const updateRecipe = (patch: Partial<Recipe>) => {
+		if (readonly) {
+			return;
+		}
+
 		onRecipeChange({ ...recipe, ...patch });
 	};
 
@@ -64,6 +70,10 @@
 	};
 
 	const addItem = (field: 'ingredients' | 'steps', value: string) => {
+		if (readonly) {
+			return;
+		}
+
 		const normalized = value.trim();
 		if (!normalized) {
 			return;
@@ -73,6 +83,10 @@
 	};
 
 	const removeItem = (field: 'ingredients' | 'steps', index: number) => {
+		if (readonly) {
+			return;
+		}
+
 		updateRecipe({ [field]: recipe[field].filter((_, itemIndex) => itemIndex !== index) });
 	};
 
@@ -97,6 +111,10 @@
 		field === 'ingredients' ? ingredientRowRefs : stepRowRefs;
 
 	const startDrag = (field: 'ingredients' | 'steps', index: number, event: PointerEvent) => {
+		if (readonly) {
+			return;
+		}
+
 		if (event.button !== 0 && event.pointerType === 'mouse') {
 			return;
 		}
@@ -142,6 +160,10 @@
 	};
 
 	const setTheme = (theme: string) => {
+		if (readonly) {
+			return;
+		}
+
 		updateRecipe({ theme: theme as RecipeTheme });
 	};
 
@@ -183,7 +205,7 @@
 />
 
 <div class="space-y-5 pb-5">
-		<section
+	<section
 			class="rounded-3xl border border-stone-200/70 bg-white/80 p-5 shadow-lg shadow-amber-100/35 backdrop-blur sm:p-6 xl:p-7"
 		>
 		<div class="mb-5 flex items-end justify-between gap-4">
@@ -203,6 +225,7 @@
 				<Input.Root
 					id="recipe-title"
 					maxlength={120}
+					disabled={readonly}
 					placeholder="e.g. Creamy Tomato Gnocchi"
 					class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 					value={recipe.title}
@@ -218,6 +241,7 @@
 				<Textarea.Root
 					id="recipe-description"
 					maxlength={320}
+					disabled={readonly}
 					rows={4}
 					placeholder="Tell people what makes this recipe special."
 					class="min-h-28 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 py-2.5 text-sm leading-relaxed transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
@@ -235,6 +259,7 @@
 					id="recipe-hero-image"
 					type="url"
 					maxlength={2048}
+					disabled={readonly}
 					placeholder="https://images.example.com/your-dish.jpg"
 					class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 					value={recipe.heroImageUrl}
@@ -253,6 +278,7 @@
 						id="servings"
 						type="number"
 						min={0}
+						disabled={readonly}
 						placeholder="4"
 						class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 						value={recipe.servings?.toString() ?? ''}
@@ -265,6 +291,7 @@
 						id="prep-minutes"
 						type="number"
 						min={0}
+						disabled={readonly}
 						placeholder="15"
 						class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 						value={recipe.prepMinutes?.toString() ?? ''}
@@ -277,6 +304,7 @@
 						id="cook-minutes"
 						type="number"
 						min={0}
+						disabled={readonly}
 						placeholder="25"
 						class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 						value={recipe.cookMinutes?.toString() ?? ''}
@@ -298,6 +326,7 @@
 				{#each themeOptions as option}
 						<Tabs.Trigger
 							value={option.value}
+							disabled={readonly}
 							class="group h-auto min-h-32 flex-col items-start rounded-2xl border border-stone-200/80 bg-stone-50/80 px-4 py-4 text-left whitespace-normal shadow-sm transition-all duration-200 hover:border-amber-300/80 hover:bg-white data-[state=active]:border-amber-400 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-100/70 xl:min-h-36 xl:px-5"
 						>
 							<div class="mb-3 flex h-10 w-full items-center justify-center rounded-lg" style={`background: ${option.swatchStyle}`}>
@@ -344,6 +373,7 @@
 							<Button.Root
 								variant="ghost"
 								size="icon-sm"
+								disabled={readonly}
 								class="touch-none text-stone-500 hover:bg-amber-100 hover:text-amber-900"
 								aria-label={`Drag ingredient ${index + 1} to reorder`}
 								title="Drag to reorder"
@@ -355,6 +385,7 @@
 						</div>
 						<Input.Root
 							aria-label={`Ingredient ${index + 1}`}
+							disabled={readonly}
 								class="min-w-0 flex-1 h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 							value={ingredient}
 							oninput={(event) => updateItem('ingredients', index, event.currentTarget.value)}
@@ -365,6 +396,7 @@
 							<Button.Root
 								variant="ghost"
 								size="icon-sm"
+								disabled={readonly}
 								class="text-stone-500 hover:bg-destructive/10 hover:text-destructive"
 								onclick={() => removeItem('ingredients', index)}
 								aria-label={`Remove ingredient ${index + 1}`}
@@ -381,6 +413,7 @@
 				<div class="flex flex-col gap-2 sm:flex-row">
 					<Input.Root
 						aria-label="New ingredient"
+						disabled={readonly}
 						placeholder="e.g. 2 tbsp olive oil"
 							class="h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 						bind:value={ingredientDraft}
@@ -393,12 +426,12 @@
 						}}
 					/>
 					<Button.Root
+							disabled={readonly || !ingredientDraft.trim()}
 							class="h-11 gap-1.5 rounded-xl bg-stone-900 px-4.5 text-stone-50 transition hover:bg-stone-800"
 						onclick={() => {
 							addItem('ingredients', ingredientDraft);
 							ingredientDraft = '';
 						}}
-						disabled={!ingredientDraft.trim()}
 					>
 						<PlusIcon class="size-4" />
 						Add ingredient
@@ -440,6 +473,7 @@
 								<Button.Root
 									variant="ghost"
 									size="icon-sm"
+									disabled={readonly}
 									class="touch-none text-stone-500 hover:bg-amber-100 hover:text-amber-900"
 									aria-label={`Drag step ${index + 1} to reorder`}
 									title="Drag to reorder"
@@ -452,6 +486,7 @@
 							<Textarea.Root
 								rows={2}
 								aria-label={`Step ${index + 1}`}
+								disabled={readonly}
 									class="min-h-24 min-w-0 flex-1 rounded-xl border-stone-200 bg-white px-3.5 py-2.5 text-sm leading-relaxed transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 								value={step}
 								oninput={(event) => updateItem('steps', index, event.currentTarget.value)}
@@ -462,6 +497,7 @@
 								<Button.Root
 									variant="ghost"
 									size="icon-sm"
+									disabled={readonly}
 									class="text-stone-500 hover:bg-destructive/10 hover:text-destructive"
 									onclick={() => removeItem('steps', index)}
 									aria-label={`Remove step ${index + 1}`}
@@ -480,6 +516,7 @@
 				<div class="rounded-2xl border border-stone-200/80 bg-stone-50/70 p-2.5">
 				<Input.Root
 					aria-label="New step"
+					disabled={readonly}
 					placeholder="e.g. Simmer for 10 minutes"
 						class="h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 					bind:value={stepDraft}
@@ -492,12 +529,12 @@
 					}}
 				/>
 				<Button.Root
+						disabled={readonly || !stepDraft.trim()}
 						class="mt-2 h-11 w-full gap-1.5 rounded-xl bg-stone-900 px-4.5 text-stone-50 transition hover:bg-stone-800 sm:mt-0 sm:w-auto"
 					onclick={() => {
 						addItem('steps', stepDraft);
 						stepDraft = '';
 					}}
-					disabled={!stepDraft.trim()}
 				>
 					<PlusIcon class="size-4" />
 					Add step

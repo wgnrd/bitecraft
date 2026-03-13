@@ -10,10 +10,12 @@
 
 	let {
 		recipe,
-		onRecipeChange
+		onRecipeChange,
+		readonly = false
 	}: {
 		recipe: Recipe;
 		onRecipeChange: (nextRecipe: Recipe) => void;
+		readonly?: boolean;
 	} = $props();
 
 	let isDragging = $state(false);
@@ -26,6 +28,10 @@
 	const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
 	const updateRecipe = (patch: Partial<Recipe>) => {
+		if (readonly) {
+			return;
+		}
+
 		onRecipeChange({ ...recipe, ...patch });
 	};
 
@@ -39,7 +45,7 @@
 	};
 
 	const handleHeroWheel = (event: WheelEvent) => {
-		if (!recipe.heroImageUrl) {
+		if (readonly || !recipe.heroImageUrl) {
 			return;
 		}
 
@@ -58,7 +64,7 @@
 	};
 
 	const handleHeroPointerDown = (event: PointerEvent) => {
-		if (!recipe.heroImageUrl || event.button !== 0) {
+		if (readonly || !recipe.heroImageUrl || event.button !== 0) {
 			return;
 		}
 
@@ -171,10 +177,14 @@
 		<div
 			class={cn(
 				'relative aspect-[16/7] w-full overflow-hidden bg-stone-200 touch-none select-none sm:aspect-[16/6] xl:aspect-[16/5]',
-				isDragging ? 'cursor-grabbing' : 'cursor-grab'
+				readonly ? 'cursor-default' : isDragging ? 'cursor-grabbing' : 'cursor-grab'
 			)}
 			role="group"
-			aria-label="Hero image preview. Drag to reposition and use the mouse wheel to zoom."
+			aria-label={
+				readonly
+					? 'Hero image preview.'
+					: 'Hero image preview. Drag to reposition and use the mouse wheel to zoom.'
+			}
 			onwheel={handleHeroWheel}
 			onpointerdown={handleHeroPointerDown}
 			onpointermove={handleHeroPointerMove}
