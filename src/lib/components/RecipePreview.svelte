@@ -8,7 +8,116 @@
 	import { cn } from '$lib/utils';
 	import type { Recipe } from '$lib/types';
 
-	let { recipe }: { recipe: Recipe } = $props();
+	let {
+		recipe,
+		onRecipeChange
+	}: {
+		recipe: Recipe;
+		onRecipeChange: (nextRecipe: Recipe) => void;
+	} = $props();
+
+	let isDragging = $state(false);
+	let dragPointerId = $state<number | null>(null);
+	let dragStartX = 0;
+	let dragStartY = 0;
+	let dragOriginX = 50;
+	let dragOriginY = 50;
+
+	const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+	const updateRecipe = (patch: Partial<Recipe>) => {
+		onRecipeChange({ ...recipe, ...patch });
+	};
+
+	const updateHeroFrame = (patch: Pick<Recipe, 'heroImageScale' | 'heroImagePositionX' | 'heroImagePositionY'>) => {
+		updateRecipe(patch);
+	};
+
+	const resetDrag = () => {
+		isDragging = false;
+		dragPointerId = null;
+	};
+
+	const handleHeroWheel = (event: WheelEvent) => {
+		if (!recipe.heroImageUrl) {
+			return;
+		}
+
+		event.preventDefault();
+
+		const nextScale = clamp(Number((recipe.heroImageScale - event.deltaY * 0.0015).toFixed(2)), 1, 3);
+		if (nextScale === recipe.heroImageScale) {
+			return;
+		}
+
+		updateHeroFrame({
+			heroImageScale: nextScale,
+			heroImagePositionX: recipe.heroImagePositionX,
+			heroImagePositionY: recipe.heroImagePositionY
+		});
+	};
+
+	const handleHeroPointerDown = (event: PointerEvent) => {
+		if (!recipe.heroImageUrl || event.button !== 0) {
+			return;
+		}
+
+		const currentTarget = event.currentTarget;
+		if (!(currentTarget instanceof HTMLDivElement)) {
+			return;
+		}
+
+		currentTarget.setPointerCapture(event.pointerId);
+		isDragging = true;
+		dragPointerId = event.pointerId;
+		dragStartX = event.clientX;
+		dragStartY = event.clientY;
+		dragOriginX = recipe.heroImagePositionX;
+		dragOriginY = recipe.heroImagePositionY;
+	};
+
+	const handleHeroPointerMove = (event: PointerEvent) => {
+		if (!isDragging || dragPointerId !== event.pointerId) {
+			return;
+		}
+
+		const currentTarget = event.currentTarget;
+		if (!(currentTarget instanceof HTMLDivElement)) {
+			return;
+		}
+
+		const rect = currentTarget.getBoundingClientRect();
+		if (!rect.width || !rect.height) {
+			return;
+		}
+
+		const sensitivity = 100 / Math.max(recipe.heroImageScale, 1);
+		const nextX = clamp(
+			dragOriginX - ((event.clientX - dragStartX) / rect.width) * sensitivity,
+			0,
+			100
+		);
+		const nextY = clamp(
+			dragOriginY - ((event.clientY - dragStartY) / rect.height) * sensitivity,
+			0,
+			100
+		);
+
+		updateHeroFrame({
+			heroImageScale: recipe.heroImageScale,
+			heroImagePositionX: Number(nextX.toFixed(2)),
+			heroImagePositionY: Number(nextY.toFixed(2))
+		});
+	};
+
+	const handleHeroPointerUp = (event: PointerEvent) => {
+		const currentTarget = event.currentTarget;
+		if (currentTarget instanceof HTMLDivElement && dragPointerId === event.pointerId) {
+			currentTarget.releasePointerCapture(event.pointerId);
+		}
+
+		resetDrag();
+	};
 
 	const themeStyles = {
 		classic: {
@@ -54,13 +163,41 @@
 
 	<Card.Root
 		class={cn(
-			'mx-auto w-full max-w-none overflow-hidden rounded-[1.8rem] border border-stone-200/80 shadow-2xl shadow-stone-200/70 transition-all duration-300',
+			'mx-auto w-full max-w-none gap-0 overflow-hidden rounded-[1.8rem] border border-stone-200/80 py-0 shadow-2xl shadow-stone-200/70 transition-all duration-300',
 			cardTheme.container
 		)}
 	>
-	<div class={cn('h-2 w-full bg-linear-to-r', cardTheme.accent)}></div>
+	{#if recipe.heroImageUrl}
+		<div
+			class={cn(
+				'relative aspect-[16/7] w-full overflow-hidden bg-stone-200 touch-none select-none sm:aspect-[16/6] xl:aspect-[16/5]',
+				isDragging ? 'cursor-grabbing' : 'cursor-grab'
+			)}
+			role="group"
+			aria-label="Hero image preview. Drag to reposition and use the mouse wheel to zoom."
+			onwheel={handleHeroWheel}
+			onpointerdown={handleHeroPointerDown}
+			onpointermove={handleHeroPointerMove}
+			onpointerup={handleHeroPointerUp}
+			onpointercancel={handleHeroPointerUp}
+		>
+			<img
+				src={recipe.heroImageUrl}
+				alt={recipe.title ? `${recipe.title} hero image` : 'Recipe hero image'}
+				class="block h-full w-full object-cover"
+				style={`object-position: ${recipe.heroImagePositionX}% ${recipe.heroImagePositionY}%; transform: scale(${recipe.heroImageScale}); transform-origin: center;`}
+				draggable="false"
+			/>
+		</div>
+	{/if}
+	<div class={cn('h-2 w-full bg-linear-to-r', cardTheme.accent, recipe.heroImageUrl ? '-mt-px' : '')}></div>
 
-	<Card.Header class="gap-7 px-7 pb-6 pt-8 sm:px-11 sm:pt-11 xl:px-14 xl:pb-7">
+	<Card.Header
+		class={cn(
+			'gap-4 px-7 pb-4 sm:px-11 sm:pb-5 xl:px-14 xl:pb-5',
+			recipe.heroImageUrl ? 'pt-4 sm:pt-5' : 'pt-8 sm:pt-11'
+		)}
+	>
 		<div class="space-y-3">
 			<Card.Title class={cn('text-[2rem] leading-[1.08] sm:text-[2.6rem]', cardTheme.title)}>
 				{recipe.title || 'Untitled recipe'}
@@ -97,7 +234,7 @@
 
 	<Separator.Root class={cn('mx-7 sm:mx-11 xl:mx-14', cardTheme.divider)} />
 
-	<Card.Content class="grid gap-7 px-7 py-7 sm:grid-cols-[1.08fr_1.6fr] sm:gap-10 sm:px-11 sm:py-10 xl:px-14 xl:py-11">
+	<Card.Content class="grid gap-7 px-7 pb-7 pt-5 sm:grid-cols-[1.08fr_1.6fr] sm:gap-10 sm:px-11 sm:pb-10 sm:pt-6 xl:px-14 xl:pb-11 xl:pt-7">
 		<section class={cn('space-y-5 rounded-2xl border border-white/50 p-5 sm:p-6', cardTheme.panel)}>
 			<h3 class={cn('text-[0.7rem]', cardTheme.sectionTitle)}>Ingredients</h3>
 			{#if recipe.ingredients.length === 0}

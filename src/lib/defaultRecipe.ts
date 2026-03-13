@@ -4,6 +4,10 @@ export const defaultRecipe: Recipe = {
 	title: 'Herbed Lemon Chicken Skillet',
 	description:
 		'A weeknight-friendly one-pan recipe with bright lemon, garlic, and tender chicken finished with fresh herbs.',
+	heroImageUrl: '',
+	heroImageScale: 1,
+	heroImagePositionX: 50,
+	heroImagePositionY: 50,
 	servings: 4,
 	prepMinutes: 15,
 	cookMinutes: 25,

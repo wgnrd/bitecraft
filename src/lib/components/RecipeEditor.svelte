@@ -31,6 +31,15 @@
 		onRecipeChange({ ...recipe, ...patch });
 	};
 
+	const updateHeroImageUrl = (value: string) => {
+		updateRecipe({
+			heroImageUrl: value.trim().slice(0, 2048),
+			heroImageScale: 1,
+			heroImagePositionX: 50,
+			heroImagePositionY: 50
+		});
+	};
+
 	const updateNumber = (field: 'servings' | 'prepMinutes' | 'cookMinutes', value: string) => {
 		if (!value.trim()) {
 			updateRecipe({ [field]: null });
@@ -148,6 +157,26 @@
 					value={recipe.description}
 					oninput={(event) => updateRecipe({ description: event.currentTarget.value.slice(0, 320) })}
 				/>
+			</section>
+
+			<section class="space-y-2">
+				<div class="flex items-center justify-between gap-2">
+					<label for="recipe-hero-image" class="text-sm font-medium text-stone-800">Hero image URL</label>
+					<p class="text-xs text-stone-500">{recipe.heroImageUrl.length}/2048</p>
+				</div>
+				<Input.Root
+					id="recipe-hero-image"
+					type="url"
+					maxlength={2048}
+					placeholder="https://images.example.com/your-dish.jpg"
+					class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+					value={recipe.heroImageUrl}
+					oninput={(event) => updateHeroImageUrl(event.currentTarget.value)}
+				/>
+				<p class="text-xs leading-5 text-stone-500">
+					Optional. Paste a direct image URL, then drag the image in the live preview and use the
+					mouse wheel to zoom.
+				</p>
 			</section>
 
 			<section class="grid gap-3 sm:grid-cols-3">

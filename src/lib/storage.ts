@@ -3,6 +3,11 @@ import type { Recipe, RecipeTheme, SavedRecipe } from '$lib/types';
 const STORAGE_KEY = 'bitecraft:recipe';
 const SAVED_RECIPES_KEY = 'bitecraft:saved-recipes';
 const VALID_THEMES: RecipeTheme[] = ['classic', 'minimal', 'bold'];
+const DEFAULT_HERO_IMAGE_SCALE = 1;
+const DEFAULT_HERO_IMAGE_POSITION = 50;
+
+const clampNumber = (value: number, min: number, max: number): number =>
+	Math.min(max, Math.max(min, value));
 
 const toNullableNumber = (value: unknown): number | null => {
 	if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -24,6 +29,14 @@ const toStringList = (value: unknown): string[] => {
 		.filter(Boolean);
 };
 
+const toClampedNumber = (value: unknown, min: number, max: number, fallback: number): number => {
+	if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
+		return fallback;
+	}
+
+	return clampNumber(Number(value.toFixed(2)), min, max);
+};
+
 export const normalizeRecipe = (value: unknown): Recipe | null => {
 	if (!value || typeof value !== 'object') {
 		return null;
@@ -38,6 +51,21 @@ export const normalizeRecipe = (value: unknown): Recipe | null => {
 	return {
 		title: typeof candidate.title === 'string' ? candidate.title.slice(0, 120) : '',
 		description: typeof candidate.description === 'string' ? candidate.description.slice(0, 320) : '',
+		heroImageUrl:
+			typeof candidate.heroImageUrl === 'string' ? candidate.heroImageUrl.trim().slice(0, 2048) : '',
+		heroImageScale: toClampedNumber(candidate.heroImageScale, 1, 3, DEFAULT_HERO_IMAGE_SCALE),
+		heroImagePositionX: toClampedNumber(
+			candidate.heroImagePositionX,
+			0,
+			100,
+			DEFAULT_HERO_IMAGE_POSITION
+		),
+		heroImagePositionY: toClampedNumber(
+			candidate.heroImagePositionY,
+			0,
+			100,
+			DEFAULT_HERO_IMAGE_POSITION
+		),
 		servings: toNullableNumber(candidate.servings),
 		prepMinutes: toNullableNumber(candidate.prepMinutes),
 		cookMinutes: toNullableNumber(candidate.cookMinutes),

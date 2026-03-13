@@ -35,6 +35,10 @@
 	const cloneRecipe = (source: Recipe): Recipe => ({
 		title: source.title,
 		description: source.description,
+		heroImageUrl: source.heroImageUrl,
+		heroImageScale: source.heroImageScale,
+		heroImagePositionX: source.heroImagePositionX,
+		heroImagePositionY: source.heroImagePositionY,
 		servings: source.servings,
 		prepMinutes: source.prepMinutes,
 		cookMinutes: source.cookMinutes,
@@ -46,6 +50,10 @@
 	const makeEmptyRecipe = (): Recipe => ({
 		title: '',
 		description: '',
+		heroImageUrl: '',
+		heroImageScale: 1,
+		heroImagePositionX: 50,
+		heroImagePositionY: 50,
 		servings: null,
 		prepMinutes: null,
 		cookMinutes: null,
@@ -354,7 +362,7 @@
 				</Tabs.Content>
 				<Tabs.Content value="preview">
 					<div class="rounded-3xl border border-stone-200/70 bg-white/45 p-3 shadow-lg shadow-stone-200/40 sm:p-4">
-						<RecipePreview {recipe} />
+						<RecipePreview {recipe} onRecipeChange={handleRecipeChange} />
 					</div>
 				</Tabs.Content>
 			</Tabs.Root>
@@ -376,7 +384,7 @@
 								<p class="text-sm text-stone-600">Typography and spacing update as you edit.</p>
 						</div>
 					</div>
-					<RecipePreview {recipe} />
+					<RecipePreview {recipe} onRecipeChange={handleRecipeChange} />
 				</div>
 			</section>
 		</div>
