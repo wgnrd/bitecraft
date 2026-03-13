@@ -361,7 +361,7 @@
 					<RecipeEditor {recipe} onRecipeChange={handleRecipeChange} />
 				</Tabs.Content>
 				<Tabs.Content value="preview">
-					<div class="rounded-3xl border border-stone-200/70 bg-white/45 p-3 shadow-lg shadow-stone-200/40 sm:p-4">
+					<div class="rounded-[1.35rem] border border-stone-200/50 bg-white/30 p-0.5 shadow-md shadow-stone-200/25 sm:rounded-3xl sm:p-4">
 						<RecipePreview {recipe} onRecipeChange={handleRecipeChange} />
 					</div>
 				</Tabs.Content>

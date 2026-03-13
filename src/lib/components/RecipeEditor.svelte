@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { flip } from 'svelte/animate';
 	import { fade, fly } from 'svelte/transition';
-	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
 	import GripVerticalIcon from '@lucide/svelte/icons/grip-vertical';
 	import LeafIcon from '@lucide/svelte/icons/leaf';
 	import PlusIcon from '@lucide/svelte/icons/plus';
@@ -26,6 +24,15 @@
 
 	let ingredientDraft = $state('');
 	let stepDraft = $state('');
+	let ingredientRowRefs: Array<HTMLDivElement | null> = $state([]);
+	let stepRowRefs: Array<HTMLDivElement | null> = $state([]);
+	let activeDrag:
+		| {
+				field: 'ingredients' | 'steps';
+				index: number;
+				pointerId: number;
+		  }
+		| null = $state(null);
 
 	const updateRecipe = (patch: Partial<Recipe>) => {
 		onRecipeChange({ ...recipe, ...patch });
@@ -69,15 +76,69 @@
 		updateRecipe({ [field]: recipe[field].filter((_, itemIndex) => itemIndex !== index) });
 	};
 
-	const moveItem = (field: 'ingredients' | 'steps', index: number, direction: -1 | 1) => {
-		const target = index + direction;
-		if (target < 0 || target >= recipe[field].length) {
+	const moveItem = (field: 'ingredients' | 'steps', fromIndex: number, toIndex: number) => {
+		if (
+			fromIndex === toIndex ||
+			fromIndex < 0 ||
+			toIndex < 0 ||
+			fromIndex >= recipe[field].length ||
+			toIndex >= recipe[field].length
+		) {
 			return;
 		}
 
 		const next = [...recipe[field]];
-		[next[index], next[target]] = [next[target], next[index]];
+		const [moved] = next.splice(fromIndex, 1);
+		next.splice(toIndex, 0, moved);
 		updateRecipe({ [field]: next });
+	};
+
+	const getRowRefs = (field: 'ingredients' | 'steps') =>
+		field === 'ingredients' ? ingredientRowRefs : stepRowRefs;
+
+	const startDrag = (field: 'ingredients' | 'steps', index: number, event: PointerEvent) => {
+		if (event.button !== 0 && event.pointerType === 'mouse') {
+			return;
+		}
+
+		const handle = event.currentTarget;
+		if (handle instanceof HTMLElement) {
+			handle.setPointerCapture(event.pointerId);
+		}
+
+		activeDrag = { field, index, pointerId: event.pointerId };
+		event.preventDefault();
+	};
+
+	const handleDragPointerMove = (event: PointerEvent) => {
+		if (!activeDrag || activeDrag.pointerId !== event.pointerId) {
+			return;
+		}
+
+		const rowRefs = getRowRefs(activeDrag.field);
+		const targetIndex = rowRefs.findIndex((row) => {
+			if (!row) {
+				return false;
+			}
+
+			const rect = row.getBoundingClientRect();
+			return event.clientY >= rect.top && event.clientY <= rect.bottom;
+		});
+
+		if (targetIndex === -1 || targetIndex === activeDrag.index) {
+			return;
+		}
+
+		moveItem(activeDrag.field, activeDrag.index, targetIndex);
+		activeDrag = { ...activeDrag, index: targetIndex };
+	};
+
+	const endDrag = (event: PointerEvent) => {
+		if (!activeDrag || activeDrag.pointerId !== event.pointerId) {
+			return;
+		}
+
+		activeDrag = null;
 	};
 
 	const setTheme = (theme: string) => {
@@ -114,6 +175,12 @@
 		}
 	];
 </script>
+
+<svelte:window
+	onpointermove={handleDragPointerMove}
+	onpointerup={endDrag}
+	onpointercancel={endDrag}
+/>
 
 <div class="space-y-5 pb-5">
 		<section
@@ -267,46 +334,34 @@
 				<div class="space-y-3">
 					{#each recipe.ingredients as ingredient, index (index)}
 					<div
+							bind:this={ingredientRowRefs[index]}
 							class="group flex items-center gap-2.5 rounded-2xl border border-stone-200/80 bg-stone-50/70 p-3 transition-all duration-200 hover:border-stone-300 hover:bg-white"
 						animate:flip={{ duration: 200 }}
 						in:fly={{ y: 6, duration: 180 }}
 						out:fade={{ duration: 130 }}
 					>
 						<div class="flex items-center gap-1.5 pl-1 text-stone-400">
-							<GripVerticalIcon class="size-4" />
+							<Button.Root
+								variant="ghost"
+								size="icon-sm"
+								class="touch-none text-stone-500 hover:bg-amber-100 hover:text-amber-900"
+								aria-label={`Drag ingredient ${index + 1} to reorder`}
+								title="Drag to reorder"
+								onpointerdown={(event) => startDrag('ingredients', index, event)}
+							>
+								<GripVerticalIcon class="size-4" />
+							</Button.Root>
 							<span class="w-4 text-center text-xs font-medium text-stone-500">{index + 1}</span>
 						</div>
 						<Input.Root
 							aria-label={`Ingredient ${index + 1}`}
-								class="h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+								class="min-w-0 flex-1 h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 							value={ingredient}
 							oninput={(event) => updateItem('ingredients', index, event.currentTarget.value)}
 						/>
 						<div
 							class="flex items-center gap-1 rounded-xl bg-white/70 p-1 opacity-100 transition-all duration-200 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
 						>
-							<Button.Root
-								variant="ghost"
-								size="icon-sm"
-								class="text-stone-500 hover:bg-amber-100 hover:text-amber-900"
-								onclick={() => moveItem('ingredients', index, -1)}
-								disabled={index === 0}
-								aria-label={`Move ingredient ${index + 1} up`}
-								title="Move up"
-							>
-								<ChevronUpIcon class="size-4" />
-							</Button.Root>
-							<Button.Root
-								variant="ghost"
-								size="icon-sm"
-								class="text-stone-500 hover:bg-amber-100 hover:text-amber-900"
-								onclick={() => moveItem('ingredients', index, 1)}
-								disabled={index === recipe.ingredients.length - 1}
-								aria-label={`Move ingredient ${index + 1} down`}
-								title="Move down"
-							>
-								<ChevronDownIcon class="size-4" />
-							</Button.Root>
 							<Button.Root
 								variant="ghost"
 								size="icon-sm"
@@ -374,6 +429,7 @@
 				<div class="space-y-3">
 					{#each recipe.steps as step, index (index)}
 					<div
+							bind:this={stepRowRefs[index]}
 							class="group rounded-2xl border border-stone-200/80 bg-stone-50/70 p-3 transition-all duration-200 hover:border-stone-300 hover:bg-white"
 						animate:flip={{ duration: 200 }}
 						in:fly={{ y: 6, duration: 180 }}
@@ -381,41 +437,28 @@
 					>
 							<div class="flex items-start gap-2.5">
 								<div class="mt-3 flex items-center gap-1.5 pl-1 text-stone-400">
-								<GripVerticalIcon class="size-4" />
+								<Button.Root
+									variant="ghost"
+									size="icon-sm"
+									class="touch-none text-stone-500 hover:bg-amber-100 hover:text-amber-900"
+									aria-label={`Drag step ${index + 1} to reorder`}
+									title="Drag to reorder"
+									onpointerdown={(event) => startDrag('steps', index, event)}
+								>
+									<GripVerticalIcon class="size-4" />
+								</Button.Root>
 								<span class="w-4 text-center text-xs font-medium text-stone-500">{index + 1}</span>
 							</div>
 							<Textarea.Root
 								rows={2}
 								aria-label={`Step ${index + 1}`}
-									class="min-h-24 rounded-xl border-stone-200 bg-white px-3.5 py-2.5 text-sm leading-relaxed transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+									class="min-h-24 min-w-0 flex-1 rounded-xl border-stone-200 bg-white px-3.5 py-2.5 text-sm leading-relaxed transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 								value={step}
 								oninput={(event) => updateItem('steps', index, event.currentTarget.value)}
 							/>
 							<div
 								class="flex shrink-0 flex-col gap-1 rounded-xl bg-white/70 p-1 opacity-100 transition-all duration-200 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
 							>
-								<Button.Root
-									variant="ghost"
-									size="icon-sm"
-									class="text-stone-500 hover:bg-amber-100 hover:text-amber-900"
-									onclick={() => moveItem('steps', index, -1)}
-									disabled={index === 0}
-									aria-label={`Move step ${index + 1} up`}
-									title="Move up"
-								>
-									<ChevronUpIcon class="size-4" />
-								</Button.Root>
-								<Button.Root
-									variant="ghost"
-									size="icon-sm"
-									class="text-stone-500 hover:bg-amber-100 hover:text-amber-900"
-									onclick={() => moveItem('steps', index, 1)}
-									disabled={index === recipe.steps.length - 1}
-									aria-label={`Move step ${index + 1} down`}
-									title="Move down"
-								>
-									<ChevronDownIcon class="size-4" />
-								</Button.Root>
 								<Button.Root
 									variant="ghost"
 									size="icon-sm"
