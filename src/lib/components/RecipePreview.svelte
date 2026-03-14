@@ -168,6 +168,7 @@
 </script>
 
 	<Card.Root
+		data-recipe-card="true"
 		class={cn(
 			'mx-auto w-full max-w-none gap-0 overflow-hidden rounded-[1rem] border border-stone-200/70 py-0 shadow-xl shadow-stone-200/55 transition-all duration-300 sm:rounded-[1.8rem] sm:shadow-2xl sm:shadow-stone-200/70',
 			cardTheme.container

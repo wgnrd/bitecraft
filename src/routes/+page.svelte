@@ -11,6 +11,7 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Textarea from '$lib/components/ui/textarea';
 	import { Toaster } from '$lib/components/ui/sonner';
+	import { copyElementImageToClipboard } from '$lib/image';
 	import {
 		decodeSharedRecipe,
 		encodeSharedRecipe,
@@ -29,6 +30,7 @@
 	import type { Recipe, SavedRecipe } from '$lib/types';
 	import ChefHatIcon from '@lucide/svelte/icons/chef-hat';
 	import CircleEllipsisIcon from '@lucide/svelte/icons/circle-ellipsis';
+	import CopyIcon from '@lucide/svelte/icons/copy';
 	import CopyPlusIcon from '@lucide/svelte/icons/copy-plus';
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import FileJsonIcon from '@lucide/svelte/icons/file-json';
@@ -318,6 +320,35 @@
 			toast.error(message);
 		}
 	};
+
+	const findVisibleRecipeCard = (): HTMLElement | null => {
+		const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-recipe-card="true"]'));
+		return cards.find((card) => {
+			const rect = card.getBoundingClientRect();
+			return rect.width > 0 && rect.height > 0;
+		}) ?? null;
+	};
+
+	const copyRecipeImage = async () => {
+		if (!browser) {
+			return;
+		}
+
+		const recipeCard = findVisibleRecipeCard();
+		if (!recipeCard) {
+			toast.error('Recipe preview is not available to copy');
+			return;
+		}
+
+		try {
+			await copyElementImageToClipboard(recipeCard);
+			toast.success('Recipe image copied');
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : 'Could not copy the recipe image.';
+			toast.error(message);
+		}
+	};
 </script>
 
 <div class="relative min-h-screen overflow-x-clip bg-linear-to-b from-stone-100 via-amber-50 to-orange-100/70 pb-10">
@@ -358,6 +389,10 @@
 			</div>
 
 			<div class="ml-auto flex items-center gap-2">
+				<Button.Root variant="outline" onclick={copyRecipeImage} class="gap-2">
+					<CopyIcon class="size-4" />
+					Copy image
+				</Button.Root>
 				<Button.Root variant="outline" onclick={copyShareLink} class="gap-2">
 					<LinkIcon class="size-4" />
 					Share
@@ -387,6 +422,10 @@
 						<DropdownMenu.Item onclick={copyRecipeJson}>
 							<DownloadIcon class="size-4" />
 							Copy JSON
+						</DropdownMenu.Item>
+						<DropdownMenu.Item onclick={copyRecipeImage}>
+							<CopyIcon class="size-4" />
+							Copy image
 						</DropdownMenu.Item>
 						<DropdownMenu.Item onclick={copyShareLink}>
 							<LinkIcon class="size-4" />
