@@ -165,6 +165,11 @@
 	} as const;
 
 	const cardTheme = $derived(themeStyles[recipe.theme]);
+
+	const formatIngredient = (ingredient: Recipe['ingredients'][number]): string => {
+		const amount = ingredient.amount === null ? '' : `${ingredient.amount}`;
+		return [amount, ingredient.unit, ingredient.name].filter(Boolean).join(' ');
+	};
 </script>
 
 	<Card.Root
@@ -254,10 +259,10 @@
 				</p>
 			{:else}
 				<ul class="space-y-2.5 sm:space-y-4">
-					{#each recipe.ingredients as ingredient, index (`${ingredient}-${index}`)}
+					{#each recipe.ingredients as ingredient, index (`${ingredient.name}-${index}`)}
 						<li class="flex items-start gap-3 text-sm leading-7 text-foreground/90 sm:gap-3.5 sm:text-base sm:leading-8">
 							<span class={cn('mt-2.5 inline-block size-1.5 rounded-full sm:mt-3', cardTheme.bullet)}></span>
-							<span>{ingredient}</span>
+							<span>{formatIngredient(ingredient)}</span>
 						</li>
 					{/each}
 				</ul>

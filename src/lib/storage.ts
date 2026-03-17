@@ -1,4 +1,4 @@
-import type { Recipe, RecipeTheme, SavedRecipe } from '$lib/types';
+import type { Recipe, RecipeIngredient, RecipeTheme, SavedRecipe } from '$lib/types';
 
 const STORAGE_KEY = 'bitecraft:recipe';
 const SAVED_RECIPES_KEY = 'bitecraft:saved-recipes';
@@ -27,6 +27,47 @@ const toStringList = (value: unknown): string[] => {
 		.filter((entry): entry is string => typeof entry === 'string')
 		.map((entry) => entry.trim())
 		.filter(Boolean);
+};
+
+const toNullableAmount = (value: unknown): number | null => {
+	if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
+		return null;
+	}
+
+	return value >= 0 ? Number(value.toFixed(2)) : null;
+};
+
+const normalizeIngredient = (value: unknown): RecipeIngredient | null => {
+	if (typeof value === 'string') {
+		const name = value.trim();
+		return name ? { name, amount: null, unit: '' } : null;
+	}
+
+	if (!value || typeof value !== 'object') {
+		return null;
+	}
+
+	const candidate = value as Partial<Record<keyof RecipeIngredient, unknown>>;
+	const name = typeof candidate.name === 'string' ? candidate.name.trim().slice(0, 160) : '';
+	if (!name) {
+		return null;
+	}
+
+	return {
+		name,
+		amount: toNullableAmount(candidate.amount),
+		unit: typeof candidate.unit === 'string' ? candidate.unit.trim().slice(0, 40) : ''
+	};
+};
+
+const toIngredientList = (value: unknown): RecipeIngredient[] => {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value
+		.map((entry) => normalizeIngredient(entry))
+		.filter((entry): entry is RecipeIngredient => entry !== null);
 };
 
 const toClampedNumber = (value: unknown, min: number, max: number, fallback: number): number => {
@@ -69,7 +110,7 @@ export const normalizeRecipe = (value: unknown): Recipe | null => {
 		servings: toNullableNumber(candidate.servings),
 		prepMinutes: toNullableNumber(candidate.prepMinutes),
 		cookMinutes: toNullableNumber(candidate.cookMinutes),
-		ingredients: toStringList(candidate.ingredients),
+		ingredients: toIngredientList(candidate.ingredients),
 		steps: toStringList(candidate.steps),
 		theme
 	};

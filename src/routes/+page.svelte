@@ -50,11 +50,11 @@
 		heroImagePositionY: source.heroImagePositionY,
 		servings: source.servings,
 		prepMinutes: source.prepMinutes,
-		cookMinutes: source.cookMinutes,
-		ingredients: [...source.ingredients],
-		steps: [...source.steps],
-		theme: source.theme
-	});
+	cookMinutes: source.cookMinutes,
+	ingredients: source.ingredients.map((ingredient) => ({ ...ingredient })),
+	steps: [...source.steps],
+	theme: source.theme
+});
 	const makeDefaultRecipe = (): Recipe => cloneRecipe(defaultRecipe);
 	const makeEmptyRecipe = (): Recipe => ({
 		title: '',
@@ -263,7 +263,7 @@
 	};
 
 	const openImportDialog = () => {
-		importJsonText = JSON.stringify(makeEmptyRecipe(), null, 2);
+		importJsonText = JSON.stringify(makeDefaultRecipe(), null, 2);
 		importError = '';
 		isImportDialogOpen = true;
 	};
@@ -603,7 +603,7 @@
 </AlertDialog.Root>
 
 <AlertDialog.Root bind:open={isImportDialogOpen}>
-	<AlertDialog.Content class="sm:max-w-2xl">
+	<AlertDialog.Content class="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
 		<AlertDialog.Header>
 			<AlertDialog.Title>Import recipe JSON</AlertDialog.Title>
 			<AlertDialog.Description>
@@ -612,7 +612,11 @@
 		</AlertDialog.Header>
 
 		<div class="space-y-2">
-			<Textarea.Root rows={14} bind:value={importJsonText} class="font-mono text-xs" />
+			<Textarea.Root
+				rows={14}
+				bind:value={importJsonText}
+				class="h-80 max-h-[60vh] resize-y overflow-y-auto font-mono text-xs [field-sizing:fixed]"
+			/>
 			{#if importError}
 				<p class="text-sm text-destructive">{importError}</p>
 			{/if}
