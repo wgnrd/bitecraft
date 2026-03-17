@@ -12,14 +12,14 @@ export const defaultRecipe: Recipe = {
 	prepMinutes: 15,
 	cookMinutes: 25,
 	ingredients: [
-		'1.5 lb boneless chicken thighs',
-		'2 tbsp olive oil',
-		'4 garlic cloves, minced',
-		'1 lemon (zest + juice)',
-		'1 cup low-sodium chicken broth',
-		'2 tbsp chopped parsley',
-		'1 tsp kosher salt',
-		'1/2 tsp black pepper'
+		{ name: 'Boneless chicken thighs', amount: 1.5, unit: 'lb' },
+		{ name: 'Olive oil', amount: 2, unit: 'tbsp' },
+		{ name: 'Garlic cloves, minced', amount: 4, unit: '' },
+		{ name: 'Lemon (zest + juice)', amount: 1, unit: '' },
+		{ name: 'Low-sodium chicken broth', amount: 1, unit: 'cup' },
+		{ name: 'Fresh parsley, chopped', amount: 2, unit: 'tbsp' },
+		{ name: 'Kosher salt', amount: 1, unit: 'tsp' },
+		{ name: 'Black pepper', amount: 0.5, unit: 'tsp' }
 	],
 	steps: [
 		'Season chicken with salt and pepper. Heat oil in a skillet over medium-high heat.',

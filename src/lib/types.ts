@@ -1,5 +1,11 @@
 export type RecipeTheme = 'classic' | 'minimal' | 'bold';
 
+export type RecipeIngredient = {
+	name: string;
+	amount: number | null;
+	unit: string;
+};
+
 export type Recipe = {
 	title: string;
 	description: string;
@@ -10,7 +16,7 @@ export type Recipe = {
 	servings: number | null;
 	prepMinutes: number | null;
 	cookMinutes: number | null;
-	ingredients: string[];
+	ingredients: RecipeIngredient[];
 	steps: string[];
 	theme: RecipeTheme;
 };

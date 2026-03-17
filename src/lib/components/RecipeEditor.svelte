@@ -12,7 +12,7 @@
 	import * as Textarea from '$lib/components/ui/textarea';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Separator from '$lib/components/ui/separator';
-	import type { Recipe, RecipeTheme } from '$lib/types';
+	import type { Recipe, RecipeIngredient, RecipeTheme } from '$lib/types';
 
 	let {
 		recipe,
@@ -24,7 +24,6 @@
 		readonly?: boolean;
 	} = $props();
 
-	let ingredientDraft = $state('');
 	let stepDraft = $state('');
 	let ingredientRowRefs: Array<HTMLDivElement | null> = $state([]);
 	let stepRowRefs: Array<HTMLDivElement | null> = $state([]);
@@ -63,13 +62,13 @@
 		updateRecipe({ [field]: Number.isNaN(parsed) ? null : Math.max(0, parsed) });
 	};
 
-	const updateItem = (field: 'ingredients' | 'steps', index: number, value: string) => {
-		const next = [...recipe[field]];
+	const updateStep = (index: number, value: string) => {
+		const next = [...recipe.steps];
 		next[index] = value;
-		updateRecipe({ [field]: next });
+		updateRecipe({ steps: next });
 	};
 
-	const addItem = (field: 'ingredients' | 'steps', value: string) => {
+	const addStep = (value: string) => {
 		if (readonly) {
 			return;
 		}
@@ -79,7 +78,38 @@
 			return;
 		}
 
-		updateRecipe({ [field]: [...recipe[field], normalized] });
+		updateRecipe({ steps: [...recipe.steps, normalized] });
+	};
+
+	const updateIngredient = (
+		index: number,
+		field: keyof RecipeIngredient,
+		value: string | number | null
+	) => {
+		const next = recipe.ingredients.map((ingredient, ingredientIndex) =>
+			ingredientIndex === index ? { ...ingredient, [field]: value } : ingredient
+		);
+		updateRecipe({ ingredients: next });
+	};
+
+	const updateIngredientAmount = (index: number, value: string) => {
+		if (!value.trim()) {
+			updateIngredient(index, 'amount', null);
+			return;
+		}
+
+		const parsed = Number.parseFloat(value);
+		updateIngredient(index, 'amount', Number.isNaN(parsed) || parsed < 0 ? null : parsed);
+	};
+
+	const addIngredient = () => {
+		if (readonly) {
+			return;
+		}
+
+		updateRecipe({
+			ingredients: [...recipe.ingredients, { name: '', amount: null, unit: '' }]
+		});
 	};
 
 	const removeItem = (field: 'ingredients' | 'steps', index: number) => {
@@ -364,74 +394,84 @@
 					{#each recipe.ingredients as ingredient, index (index)}
 					<div
 							bind:this={ingredientRowRefs[index]}
-							class="group flex items-center gap-2.5 rounded-2xl border border-stone-200/80 bg-stone-50/70 p-3 transition-all duration-200 hover:border-stone-300 hover:bg-white"
+							class="group rounded-2xl border border-stone-200/80 bg-stone-50/70 p-3 transition-all duration-200 hover:border-stone-300 hover:bg-white"
 						animate:flip={{ duration: 200 }}
 						in:fly={{ y: 6, duration: 180 }}
 						out:fade={{ duration: 130 }}
 					>
-						<div class="flex items-center gap-1.5 pl-1 text-stone-400">
-							<Button.Root
-								variant="ghost"
-								size="icon-sm"
-								disabled={readonly}
-								class="touch-none text-stone-500 hover:bg-amber-100 hover:text-amber-900"
-								aria-label={`Drag ingredient ${index + 1} to reorder`}
-								title="Drag to reorder"
-								onpointerdown={(event) => startDrag('ingredients', index, event)}
+						<div class="flex items-start justify-between gap-3">
+							<div class="flex items-center gap-1.5 pl-1 text-stone-400">
+								<Button.Root
+									variant="ghost"
+									size="icon-sm"
+									disabled={readonly}
+									class="touch-none text-stone-500 hover:bg-amber-100 hover:text-amber-900"
+									aria-label={`Drag ingredient ${index + 1} to reorder`}
+									title="Drag to reorder"
+									onpointerdown={(event) => startDrag('ingredients', index, event)}
+								>
+									<GripVerticalIcon class="size-4" />
+								</Button.Root>
+								<span class="w-4 text-center text-xs font-medium text-stone-500">{index + 1}</span>
+							</div>
+							<div
+								class="flex items-center gap-1 rounded-xl bg-white/70 p-1 opacity-100 transition-all duration-200 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
 							>
-								<GripVerticalIcon class="size-4" />
-							</Button.Root>
-							<span class="w-4 text-center text-xs font-medium text-stone-500">{index + 1}</span>
+								<Button.Root
+									variant="ghost"
+									size="icon-sm"
+									disabled={readonly}
+									class="text-stone-500 hover:bg-destructive/10 hover:text-destructive"
+									onclick={() => removeItem('ingredients', index)}
+									aria-label={`Remove ingredient ${index + 1}`}
+									title="Remove"
+								>
+									<Trash2Icon class="size-4" />
+								</Button.Root>
+							</div>
 						</div>
-						<Input.Root
-							aria-label={`Ingredient ${index + 1}`}
-							disabled={readonly}
-								class="min-w-0 flex-1 h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
-							value={ingredient}
-							oninput={(event) => updateItem('ingredients', index, event.currentTarget.value)}
-						/>
-						<div
-							class="flex items-center gap-1 rounded-xl bg-white/70 p-1 opacity-100 transition-all duration-200 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
-						>
-							<Button.Root
-								variant="ghost"
-								size="icon-sm"
+						<div class="mt-3 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_7rem_7rem]">
+							<Input.Root
+								aria-label={`Ingredient ${index + 1} name`}
 								disabled={readonly}
-								class="text-stone-500 hover:bg-destructive/10 hover:text-destructive"
-								onclick={() => removeItem('ingredients', index)}
-								aria-label={`Remove ingredient ${index + 1}`}
-								title="Remove"
-							>
-								<Trash2Icon class="size-4" />
-							</Button.Root>
+								placeholder="Fresh parsley"
+								class="min-w-0 h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+								value={ingredient.name}
+								oninput={(event) => updateIngredient(index, 'name', event.currentTarget.value)}
+							/>
+							<Input.Root
+								aria-label={`Ingredient ${index + 1} amount`}
+								type="number"
+								min={0}
+								step="any"
+								disabled={readonly}
+								placeholder="2"
+								class="h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+								value={ingredient.amount?.toString() ?? ''}
+								oninput={(event) => updateIngredientAmount(index, event.currentTarget.value)}
+							/>
+							<Input.Root
+								aria-label={`Ingredient ${index + 1} unit`}
+								disabled={readonly}
+								placeholder="tbsp"
+								class="h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+								value={ingredient.unit}
+								oninput={(event) => updateIngredient(index, 'unit', event.currentTarget.value)}
+							/>
 						</div>
 					</div>
 				{/each}
 			</div>
 
 				<div class="rounded-2xl border border-stone-200/80 bg-stone-50/70 p-2.5">
-				<div class="flex flex-col gap-2 sm:flex-row">
-					<Input.Root
-						aria-label="New ingredient"
-						disabled={readonly}
-						placeholder="e.g. 2 tbsp olive oil"
-							class="h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
-						bind:value={ingredientDraft}
-						onkeydown={(event) => {
-							if (event.key === 'Enter') {
-								event.preventDefault();
-								addItem('ingredients', ingredientDraft);
-								ingredientDraft = '';
-							}
-						}}
-					/>
+				<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+					<p class="px-2 text-sm text-stone-600">
+						Add structured ingredients with separate name, amount, and unit fields.
+					</p>
 					<Button.Root
-							disabled={readonly || !ingredientDraft.trim()}
+							disabled={readonly}
 							class="h-11 gap-1.5 rounded-xl bg-stone-900 px-4.5 text-stone-50 transition hover:bg-stone-800"
-						onclick={() => {
-							addItem('ingredients', ingredientDraft);
-							ingredientDraft = '';
-						}}
+						onclick={addIngredient}
 					>
 						<PlusIcon class="size-4" />
 						Add ingredient
@@ -489,7 +529,7 @@
 								disabled={readonly}
 									class="min-h-24 min-w-0 flex-1 rounded-xl border-stone-200 bg-white px-3.5 py-2.5 text-sm leading-relaxed transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 								value={step}
-								oninput={(event) => updateItem('steps', index, event.currentTarget.value)}
+								oninput={(event) => updateStep(index, event.currentTarget.value)}
 							/>
 							<div
 								class="flex shrink-0 flex-col gap-1 rounded-xl bg-white/70 p-1 opacity-100 transition-all duration-200 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
@@ -523,7 +563,7 @@
 					onkeydown={(event) => {
 						if (event.key === 'Enter') {
 							event.preventDefault();
-							addItem('steps', stepDraft);
+							addStep(stepDraft);
 							stepDraft = '';
 						}
 					}}
@@ -532,7 +572,7 @@
 						disabled={readonly || !stepDraft.trim()}
 						class="mt-2 h-11 w-full gap-1.5 rounded-xl bg-stone-900 px-4.5 text-stone-50 transition hover:bg-stone-800 sm:mt-0 sm:w-auto"
 					onclick={() => {
-						addItem('steps', stepDraft);
+						addStep(stepDraft);
 						stepDraft = '';
 					}}
 				>
