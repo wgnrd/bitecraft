@@ -4,6 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import RecipeEditor from '$lib/components/RecipeEditor.svelte';
 	import RecipePreview from '$lib/components/RecipePreview.svelte';
+	import BitecraftLogo from '$lib/components/BitecraftLogo.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Badge from '$lib/components/ui/badge';
 	import * as Button from '$lib/components/ui/button';
@@ -28,7 +29,6 @@
 	} from '$lib/storage';
 	import { defaultRecipe } from '$lib/defaultRecipe';
 	import type { Recipe, SavedRecipe } from '$lib/types';
-	import ChefHatIcon from '@lucide/svelte/icons/chef-hat';
 	import CircleEllipsisIcon from '@lucide/svelte/icons/circle-ellipsis';
 	import CopyIcon from '@lucide/svelte/icons/copy';
 	import CopyPlusIcon from '@lucide/svelte/icons/copy-plus';
@@ -351,21 +351,21 @@
 	};
 </script>
 
+<svelte:head>
+	<title>BiteCraft | Recipe Card Builder</title>
+	<meta
+		name="description"
+		content="Design, save, share, and export polished recipe cards with BiteCraft."
+	/>
+</svelte:head>
+
 <div class="relative min-h-screen overflow-x-clip bg-linear-to-b from-stone-100 via-amber-50 to-orange-100/70 pb-10">
 	<div class="pointer-events-none absolute inset-0 -z-10 noise-overlay opacity-40"></div>
 	<div class="pointer-events-none absolute right-[-8rem] top-28 -z-10 hidden size-[36rem] rounded-full bg-radial from-orange-300/35 to-transparent blur-3xl lg:block"></div>
 
 	<header class="sticky top-0 z-40 border-b border-black/5 bg-background/75 backdrop-blur-xl">
 		<div class="mx-auto flex w-full max-w-[118rem] items-center gap-3 px-4 py-3 sm:px-6 lg:px-10">
-			<div class="flex min-w-0 items-center gap-3">
-				<div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-					<ChefHatIcon class="size-5" />
-				</div>
-				<div class="min-w-0">
-					<p class="text-[11px] font-semibold tracking-[0.18em] text-amber-700 uppercase">BiteCraft</p>
-					<h1 class="truncate text-base font-semibold text-stone-900 sm:text-lg">Recipe Card Builder</h1>
-				</div>
-			</div>
+			<BitecraftLogo compact />
 
 			<div class="mx-auto hidden min-w-0 max-w-[30rem] flex-1 items-center justify-center gap-2 md:flex">
 				<p class="truncate text-sm font-medium text-foreground/90">{displayRecipeName}</p>

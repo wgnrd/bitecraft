@@ -27,3 +27,12 @@ export type SavedRecipe = {
 	recipe: Recipe;
 	updatedAt: string;
 };
+
+export type RecipeCollection = {
+	id: string;
+	name: string;
+	description: string;
+	recipeIds: string[];
+	coverRecipeId: string | null;
+	updatedAt: string;
+};

@@ -1,10 +1,43 @@
-import type { Recipe, RecipeIngredient, RecipeTheme, SavedRecipe } from '$lib/types';
+import type {
+	Recipe,
+	RecipeCollection,
+	RecipeIngredient,
+	RecipeTheme,
+	SavedRecipe
+} from '$lib/types';
 
 const STORAGE_KEY = 'bitecraft:recipe';
 const SAVED_RECIPES_KEY = 'bitecraft:saved-recipes';
+const COLLECTIONS_KEY = 'bitecraft:collections';
 const VALID_THEMES: RecipeTheme[] = ['classic', 'minimal', 'bold'];
 const DEFAULT_HERO_IMAGE_SCALE = 1;
 const DEFAULT_HERO_IMAGE_POSITION = 50;
+const DEFAULT_COLLECTIONS: RecipeCollection[] = [
+	{
+		id: 'starter-harvest-table',
+		name: 'Harvest Table Favorites',
+		description: 'A warm mix of seasonal mains, bakes, and drinks for cozy editorial spreads.',
+		recipeIds: [],
+		coverRecipeId: null,
+		updatedAt: '2026-03-19T09:00:00.000Z'
+	},
+	{
+		id: 'starter-autumn-gallery',
+		name: 'Autumn Gallery',
+		description: 'Curated recipes staged like a visual issue, ready for refinement or publishing.',
+		recipeIds: [],
+		coverRecipeId: null,
+		updatedAt: '2026-03-19T09:00:00.000Z'
+	},
+	{
+		id: 'starter-weekend-baking',
+		name: 'Weekend Baking',
+		description: 'Proofing projects, laminated doughs, and slow kitchen rituals worth saving.',
+		recipeIds: [],
+		coverRecipeId: null,
+		updatedAt: '2026-03-19T09:00:00.000Z'
+	}
+];
 
 const clampNumber = (value: number, min: number, max: number): number =>
 	Math.min(max, Math.max(min, value));
@@ -157,6 +190,36 @@ const normalizeSavedRecipe = (value: unknown): SavedRecipe | null => {
 	};
 };
 
+const normalizeCollection = (value: unknown): RecipeCollection | null => {
+	if (!value || typeof value !== 'object') {
+		return null;
+	}
+
+	const candidate = value as Partial<Record<keyof RecipeCollection, unknown>>;
+	if (typeof candidate.id !== 'string' || typeof candidate.name !== 'string') {
+		return null;
+	}
+
+	const recipeIds = Array.isArray(candidate.recipeIds)
+		? candidate.recipeIds.filter((entry): entry is string => typeof entry === 'string')
+		: [];
+
+	return {
+		id: candidate.id,
+		name: candidate.name.slice(0, 80).trim() || 'Untitled collection',
+		description:
+			typeof candidate.description === 'string'
+				? candidate.description.slice(0, 220).trim()
+				: '',
+		recipeIds: Array.from(new Set(recipeIds)),
+		coverRecipeId:
+			typeof candidate.coverRecipeId === 'string' && candidate.coverRecipeId.trim()
+				? candidate.coverRecipeId
+				: null,
+		updatedAt: typeof candidate.updatedAt === 'string' ? candidate.updatedAt : new Date().toISOString()
+	};
+};
+
 export const loadSavedRecipes = (): SavedRecipe[] => {
 	try {
 		const raw = localStorage.getItem(SAVED_RECIPES_KEY);
@@ -207,4 +270,105 @@ export const saveRecipeSnapshot = (recipe: Recipe, name: string, id?: string): S
 export const deleteRecipeSnapshot = (id: string): void => {
 	const current = loadSavedRecipes();
 	persistSavedRecipes(current.filter((entry) => entry.id !== id));
+	const collections = loadCollections().map((collection) => ({
+		...collection,
+		recipeIds: collection.recipeIds.filter((recipeId) => recipeId !== id),
+		coverRecipeId: collection.coverRecipeId === id ? null : collection.coverRecipeId
+	}));
+	localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(collections));
+};
+
+export const loadCollections = (): RecipeCollection[] => {
+	try {
+		const raw = localStorage.getItem(COLLECTIONS_KEY);
+		if (!raw) {
+			return DEFAULT_COLLECTIONS;
+		}
+
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) {
+			return DEFAULT_COLLECTIONS;
+		}
+
+		const collections = parsed
+			.map((entry) => normalizeCollection(entry))
+			.filter((entry): entry is RecipeCollection => entry !== null)
+			.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+		return collections.length > 0 ? collections : DEFAULT_COLLECTIONS;
+	} catch {
+		return DEFAULT_COLLECTIONS;
+	}
+};
+
+const persistCollections = (collections: RecipeCollection[]): void => {
+	localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(collections));
+};
+
+export const saveCollection = (
+	collection: Pick<RecipeCollection, 'name' | 'description'>,
+	id?: string
+): RecipeCollection => {
+	const current = loadCollections().filter(
+		(entry) => !DEFAULT_COLLECTIONS.some((starter) => starter.id === entry.id) || localStorage.getItem(COLLECTIONS_KEY)
+	);
+	const now = new Date().toISOString();
+	const nextCollection: RecipeCollection = {
+		id: id ?? makeId(),
+		name: collection.name.slice(0, 80).trim() || 'Untitled collection',
+		description: collection.description.slice(0, 220).trim(),
+		recipeIds: current.find((entry) => entry.id === id)?.recipeIds ?? [],
+		coverRecipeId: current.find((entry) => entry.id === id)?.coverRecipeId ?? null,
+		updatedAt: now
+	};
+
+	const next = [nextCollection, ...current.filter((entry) => entry.id !== nextCollection.id)];
+	persistCollections(next);
+	return nextCollection;
+};
+
+export const deleteCollection = (id: string): void => {
+	const current = loadCollections();
+	persistCollections(current.filter((entry) => entry.id !== id));
+};
+
+export const addRecipeToCollection = (collectionId: string, recipeId: string): RecipeCollection | null => {
+	const current = loadCollections();
+	const collection = current.find((entry) => entry.id === collectionId);
+	if (!collection) {
+		return null;
+	}
+
+	const updated: RecipeCollection = {
+		...collection,
+		recipeIds: Array.from(new Set([recipeId, ...collection.recipeIds])),
+		coverRecipeId: collection.coverRecipeId ?? recipeId,
+		updatedAt: new Date().toISOString()
+	};
+
+	persistCollections([updated, ...current.filter((entry) => entry.id !== collectionId)]);
+	return updated;
+};
+
+export const removeRecipeFromCollection = (
+	collectionId: string,
+	recipeId: string
+): RecipeCollection | null => {
+	const current = loadCollections();
+	const collection = current.find((entry) => entry.id === collectionId);
+	if (!collection) {
+		return null;
+	}
+
+	const nextRecipeIds = collection.recipeIds.filter((entry) => entry !== recipeId);
+	const updated: RecipeCollection = {
+		...collection,
+		recipeIds: nextRecipeIds,
+		coverRecipeId:
+			collection.coverRecipeId === recipeId ? nextRecipeIds[0] ?? null : collection.coverRecipeId,
+		updatedAt: new Date().toISOString()
+	};
+
+	persistCollections([updated, ...current.filter((entry) => entry.id !== collectionId)]);
+	return updated;
 };
