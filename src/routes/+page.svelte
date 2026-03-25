@@ -5,60 +5,49 @@
 	import RecipeEditor from '$lib/components/RecipeEditor.svelte';
 	import RecipePreview from '$lib/components/RecipePreview.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
-	import * as Badge from '$lib/components/ui/badge';
 	import * as Button from '$lib/components/ui/button';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Textarea from '$lib/components/ui/textarea';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { copyElementImageToClipboard } from '$lib/image';
-	import {
-		decodeSharedRecipe,
-		encodeSharedRecipe,
-		getSharedRecipeParam
-	} from '$lib/share';
+	import { defaultRecipe } from '$lib/defaultRecipe';
 	import {
 		clearRecipe,
-		deleteRecipeSnapshot,
 		loadRecipe,
-		loadSavedRecipes,
 		normalizeRecipe,
 		saveRecipe,
 		saveRecipeSnapshot
 	} from '$lib/storage';
-	import { defaultRecipe } from '$lib/defaultRecipe';
-	import type { Recipe, SavedRecipe } from '$lib/types';
-	import ChefHatIcon from '@lucide/svelte/icons/chef-hat';
-	import CircleEllipsisIcon from '@lucide/svelte/icons/circle-ellipsis';
+	import { decodeSharedRecipe, encodeSharedRecipe, getSharedRecipeParam } from '$lib/share';
+	import type { Recipe } from '$lib/types';
 	import CopyIcon from '@lucide/svelte/icons/copy';
 	import CopyPlusIcon from '@lucide/svelte/icons/copy-plus';
-	import DownloadIcon from '@lucide/svelte/icons/download';
 	import FileJsonIcon from '@lucide/svelte/icons/file-json';
-	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
 	import LinkIcon from '@lucide/svelte/icons/link';
-	import PlusIcon from '@lucide/svelte/icons/plus';
-	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
-	import SaveIcon from '@lucide/svelte/icons/save';
-	import Trash2Icon from '@lucide/svelte/icons/trash-2';
+	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 
 	const cloneRecipe = (source: Recipe): Recipe => ({
 		title: source.title,
 		description: source.description,
+		tags: source.tags.map((tag) => ({ ...tag })),
+		showHeroImage: source.showHeroImage,
 		heroImageUrl: source.heroImageUrl,
 		heroImageScale: source.heroImageScale,
 		heroImagePositionX: source.heroImagePositionX,
 		heroImagePositionY: source.heroImagePositionY,
 		servings: source.servings,
 		prepMinutes: source.prepMinutes,
-	cookMinutes: source.cookMinutes,
-	ingredients: source.ingredients.map((ingredient) => ({ ...ingredient })),
-	steps: [...source.steps],
-	theme: source.theme
-});
+		cookMinutes: source.cookMinutes,
+		ingredients: source.ingredients.map((ingredient) => ({ ...ingredient })),
+		steps: [...source.steps],
+		theme: source.theme
+	});
+
 	const makeDefaultRecipe = (): Recipe => cloneRecipe(defaultRecipe);
 	const makeEmptyRecipe = (): Recipe => ({
 		title: '',
 		description: '',
+		tags: [],
+		showHeroImage: true,
 		heroImageUrl: '',
 		heroImageScale: 1,
 		heroImagePositionX: 50,
@@ -74,29 +63,15 @@
 	let recipe = $state<Recipe>(makeDefaultRecipe());
 	let saveTimer: ReturnType<typeof setTimeout> | undefined;
 	let hydrated = $state(false);
-	let activeMobileTab = $state('editor');
 
 	let isResetDialogOpen = $state(false);
 	let isImportDialogOpen = $state(false);
-	let isDeleteDialogOpen = $state(false);
-
-	let savedRecipes = $state<SavedRecipe[]>([]);
-	let selectedSavedId = $state('');
-	let pendingDeleteId = $state('');
-	let saveName = $state('');
 	let importJsonText = $state('');
 	let importError = $state('');
+	let saveName = $state('');
 	let lastPersistedFingerprint = $state('');
-	let lastDraftSavedAt = $state('');
 	let isSharedView = $state(false);
 	let sharedRecipeName = $state('');
-
-	const recipeFingerprint = $derived(JSON.stringify(recipe));
-	const isDirty = $derived(hydrated && !isSharedView && recipeFingerprint !== lastPersistedFingerprint);
-	const displayRecipeName = $derived(recipe.title.trim() || saveName.trim() || 'Untitled recipe');
-
-	const formatSavedTime = (isoDate: string): string =>
-		new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit' }).format(new Date(isoDate));
 
 	const removeSharedParamFromUrl = () => {
 		const url = new URL(window.location.href);
@@ -108,7 +83,6 @@
 		const storedRecipe = loadRecipe();
 		recipe = storedRecipe ? cloneRecipe(storedRecipe) : makeDefaultRecipe();
 		saveName = recipe.title.trim() || 'My recipe';
-		selectedSavedId = '';
 		isSharedView = false;
 		sharedRecipeName = '';
 		removeSharedParamFromUrl();
@@ -117,13 +91,11 @@
 
 	const useSharedRecipeAsDraft = () => {
 		saveName = recipe.title.trim() || 'My recipe';
-		selectedSavedId = '';
 		isSharedView = false;
 		sharedRecipeName = '';
 		removeSharedParamFromUrl();
 		saveRecipe(recipe);
 		lastPersistedFingerprint = JSON.stringify(recipe);
-		lastDraftSavedAt = new Date().toISOString();
 		toast.success('Shared recipe loaded into your draft');
 	};
 
@@ -133,10 +105,8 @@
 			recipe = cloneRecipe(storedRecipe);
 		}
 
-		savedRecipes = loadSavedRecipes();
 		saveName = storedRecipe?.title.trim() || recipe.title.trim() || 'My recipe';
 		lastPersistedFingerprint = JSON.stringify(storedRecipe ? cloneRecipe(storedRecipe) : recipe);
-		lastDraftSavedAt = storedRecipe ? new Date().toISOString() : '';
 
 		const sharedPayload = new URL(window.location.href).searchParams.get(getSharedRecipeParam());
 		if (sharedPayload) {
@@ -145,7 +115,6 @@
 				recipe = cloneRecipe(sharedRecipe);
 				isSharedView = true;
 				sharedRecipeName = sharedRecipe.title.trim() || 'Shared recipe';
-				activeMobileTab = 'preview';
 			} else {
 				toast.error('This share link is invalid or corrupted');
 				removeSharedParamFromUrl();
@@ -160,7 +129,7 @@
 			return;
 		}
 
-		const nextFingerprint = recipeFingerprint;
+		const nextFingerprint = JSON.stringify(recipe);
 		if (saveTimer) {
 			clearTimeout(saveTimer);
 		}
@@ -168,87 +137,40 @@
 		saveTimer = setTimeout(() => {
 			saveRecipe(recipe);
 			lastPersistedFingerprint = nextFingerprint;
-			lastDraftSavedAt = new Date().toISOString();
 		}, 450);
 
 		return () => {
-			if (saveTimer) {
-				clearTimeout(saveTimer);
-			}
+			if (saveTimer) clearTimeout(saveTimer);
 		};
 	});
 
 	const handleRecipeChange = (nextRecipe: Recipe) => {
-		if (isSharedView) {
-			return;
-		}
-
+		if (isSharedView) return;
 		recipe = nextRecipe;
 	};
 
 	const saveCurrentSnapshot = () => {
 		if (isSharedView) {
-			toast.info('Import the shared recipe into your draft before saving snapshots');
+			toast.info('Import the shared recipe into your draft before saving');
 			return;
 		}
 
-		const name = recipe.title.trim() || saveName.trim() || `Recipe ${savedRecipes.length + 1}`;
-		const snapshot = saveRecipeSnapshot(recipe, name, selectedSavedId || undefined);
-		savedRecipes = loadSavedRecipes();
-		selectedSavedId = snapshot.id;
-		saveName = snapshot.name;
-		toast.success('Recipe snapshot saved');
+		const name = recipe.title.trim() || saveName.trim() || 'Untitled recipe';
+		saveRecipeSnapshot(recipe, name);
+		saveName = name;
+		toast.success('Recipe saved');
 	};
 
-	const loadRecipeById = (id: string) => {
-		const selected = savedRecipes.find((entry) => entry.id === id);
-		if (!selected) {
-			return;
-		}
-		isSharedView = false;
-		sharedRecipeName = '';
-		removeSharedParamFromUrl();
-		recipe = cloneRecipe(selected.recipe);
-		saveName = selected.name;
-		selectedSavedId = selected.id;
-		toast.success(`Loaded \"${selected.name}\"`);
-	};
-
-	const queueDeleteRecipeById = (id: string) => {
-		if (!id) {
-			return;
-		}
-		pendingDeleteId = id;
-		isDeleteDialogOpen = true;
-	};
-
-	const confirmDeleteRecipe = () => {
-		const selected = savedRecipes.find((entry) => entry.id === pendingDeleteId);
-		if (!selected) {
-			isDeleteDialogOpen = false;
-			pendingDeleteId = '';
+	const publishRecipe = () => {
+		if (isSharedView) {
+			toast.info('Import the shared recipe into your draft before publishing');
 			return;
 		}
 
-		deleteRecipeSnapshot(selected.id);
-		savedRecipes = loadSavedRecipes();
-		if (selectedSavedId === selected.id) {
-			selectedSavedId = '';
-		}
-		pendingDeleteId = '';
-		isDeleteDialogOpen = false;
-		toast.success(`Deleted \"${selected.name}\"`);
-	};
-
-	const createNewRecipe = () => {
-		isSharedView = false;
-		sharedRecipeName = '';
-		removeSharedParamFromUrl();
-		recipe = makeEmptyRecipe();
-		saveName = 'My recipe';
-		selectedSavedId = '';
-		clearRecipe();
-		toast.info('Started a fresh recipe');
+		const name = recipe.title.trim() || saveName.trim() || 'Untitled recipe';
+		saveRecipeSnapshot(recipe, name);
+		saveName = name;
+		toast.success('Recipe published');
 	};
 
 	const resetRecipe = () => {
@@ -258,7 +180,6 @@
 		clearRecipe();
 		recipe = makeDefaultRecipe();
 		saveName = recipe.title;
-		selectedSavedId = '';
 		toast.success('Recipe reset to default');
 	};
 
@@ -273,18 +194,15 @@
 		try {
 			const parsed = JSON.parse(importJsonText);
 			const normalized = normalizeRecipe(parsed);
-
 			if (!normalized) {
 				importError = 'Invalid JSON shape. Expected a Recipe object.';
 				return;
 			}
-
 			recipe = normalized;
 			isSharedView = false;
 			sharedRecipeName = '';
 			removeSharedParamFromUrl();
 			saveName = normalized.title || 'My recipe';
-			selectedSavedId = '';
 			isImportDialogOpen = false;
 			toast.success('Recipe imported successfully');
 		} catch {
@@ -297,7 +215,6 @@
 			toast.error('Clipboard is not available in this browser');
 			return;
 		}
-
 		await navigator.clipboard.writeText(JSON.stringify(recipe, null, 2));
 		toast.success('Recipe JSON copied');
 	};
@@ -321,20 +238,10 @@
 		}
 	};
 
-	const findVisibleRecipeCard = (): HTMLElement | null => {
-		const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-recipe-card="true"]'));
-		return cards.find((card) => {
-			const rect = card.getBoundingClientRect();
-			return rect.width > 0 && rect.height > 0;
-		}) ?? null;
-	};
-
 	const copyRecipeImage = async () => {
-		if (!browser) {
-			return;
-		}
+		if (!browser) return;
 
-		const recipeCard = findVisibleRecipeCard();
+		const recipeCard = document.querySelector<HTMLElement>('[data-recipe-card="true"]');
 		if (!recipeCard) {
 			toast.error('Recipe preview is not available to copy');
 			return;
@@ -344,179 +251,76 @@
 			await copyElementImageToClipboard(recipeCard);
 			toast.success('Recipe image copied');
 		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : 'Could not copy the recipe image.';
+			const message = error instanceof Error ? error.message : 'Could not copy the recipe image.';
 			toast.error(message);
 		}
 	};
 </script>
 
-<div class="relative min-h-screen overflow-x-clip bg-linear-to-b from-stone-100 via-amber-50 to-orange-100/70 pb-10">
-	<div class="pointer-events-none absolute inset-0 -z-10 noise-overlay opacity-40"></div>
-	<div class="pointer-events-none absolute right-[-8rem] top-28 -z-10 hidden size-[36rem] rounded-full bg-radial from-orange-300/35 to-transparent blur-3xl lg:block"></div>
+<svelte:head>
+	<title>BiteCraft | Recipe Editor</title>
+	<meta
+		name="description"
+		content="Design, save, share, and export polished recipe cards with BiteCraft."
+	/>
+</svelte:head>
 
-	<header class="sticky top-0 z-40 border-b border-black/5 bg-background/75 backdrop-blur-xl">
-		<div class="mx-auto flex w-full max-w-[118rem] items-center gap-3 px-4 py-3 sm:px-6 lg:px-10">
-			<div class="flex min-w-0 items-center gap-3">
-				<div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-					<ChefHatIcon class="size-5" />
+<div class="min-h-screen bg-[#f7f1e4] text-stone-900">
+	<div class="flex min-h-screen flex-col px-4 pb-8 pt-4 sm:px-6 lg:px-8">
+		<header class="bg-[#fbf6eb]/95 px-2 py-4 md:px-4">
+			<div class="flex items-center justify-between gap-4">
+				<div>
+					<p class="font-serif text-[2.2rem] leading-none font-black tracking-[-0.03em] text-stone-950">
+						Bitecraft
+					</p>
+					<p class="mt-2 text-[0.78rem] font-semibold tracking-[0.32em] text-[#9b4d12] uppercase">
+						Editor
+					</p>
 				</div>
-				<div class="min-w-0">
-					<p class="text-[11px] font-semibold tracking-[0.18em] text-amber-700 uppercase">BiteCraft</p>
-					<h1 class="truncate text-base font-semibold text-stone-900 sm:text-lg">Recipe Card Builder</h1>
-				</div>
-			</div>
 
-			<div class="mx-auto hidden min-w-0 max-w-[30rem] flex-1 items-center justify-center gap-2 md:flex">
-				<p class="truncate text-sm font-medium text-foreground/90">{displayRecipeName}</p>
-				{#if isSharedView}
-					<Badge.Badge variant="outline" class="border-sky-200 bg-sky-100/80 text-sky-900">
-						Shared view
-					</Badge.Badge>
-				{:else}
-					<Badge.Badge
+				<div class="flex flex-wrap items-center justify-end gap-3">
+					<Button.Root
 						variant="outline"
-						class={isDirty
-							? 'border-amber-200 bg-amber-100/70 text-amber-900'
-							: 'border-emerald-200 bg-emerald-100/70 text-emerald-900'}
+						class="h-11 rounded-full border-0 bg-[#ece3d3] px-5 shadow-none"
+						onclick={copyRecipeImage}
 					>
-						{isDirty ? 'Unsaved changes' : 'Saved'}
-					</Badge.Badge>
-				{/if}
-				{#if lastDraftSavedAt && !isSharedView}
-					<span class="text-xs text-muted-foreground">Draft {formatSavedTime(lastDraftSavedAt)}</span>
-				{/if}
+						<CopyIcon class="size-4" />
+						Copy Image
+					</Button.Root>
+					<Button.Root
+						variant="outline"
+						class="h-11 rounded-full border-0 bg-[#ece3d3] px-5 shadow-none"
+						onclick={copyShareLink}
+					>
+						<LinkIcon class="size-4" />
+						Share
+					</Button.Root>
+					<Button.Root
+						variant="outline"
+						class="h-11 rounded-full border-0 bg-[#ece3d3] px-5 shadow-none"
+						onclick={copyRecipeJson}
+					>
+						<FileJsonIcon class="size-4" />
+						JSON
+					</Button.Root>
+				</div>
 			</div>
-
-			<div class="ml-auto flex items-center gap-2">
-				<Button.Root variant="outline" onclick={copyRecipeImage} class="gap-2">
-					<CopyIcon class="size-4" />
-					Copy image
-				</Button.Root>
-				<Button.Root variant="outline" onclick={copyShareLink} class="gap-2">
-					<LinkIcon class="size-4" />
-					Share
-				</Button.Root>
-				<Button.Root onclick={saveCurrentSnapshot} class="gap-2" disabled={isSharedView}>
-					<SaveIcon class="size-4" />
-					Save
-				</Button.Root>
-
-				<DropdownMenu.Root>
-					<DropdownMenu.Trigger>
-						<Button.Root variant="outline" size="icon" aria-label="Open actions menu">
-							<CircleEllipsisIcon class="size-4" />
-						</Button.Root>
-					</DropdownMenu.Trigger>
-					<DropdownMenu.Content align="end" class="w-64">
-						<DropdownMenu.Label>Recipe actions</DropdownMenu.Label>
-						<DropdownMenu.Separator />
-						<DropdownMenu.Item onclick={createNewRecipe}>
-							<PlusIcon class="size-4" />
-							New recipe
-						</DropdownMenu.Item>
-						<DropdownMenu.Item onclick={openImportDialog}>
-							<FileJsonIcon class="size-4" />
-							Import JSON
-						</DropdownMenu.Item>
-						<DropdownMenu.Item onclick={copyRecipeJson}>
-							<DownloadIcon class="size-4" />
-							Copy JSON
-						</DropdownMenu.Item>
-						<DropdownMenu.Item onclick={copyRecipeImage}>
-							<CopyIcon class="size-4" />
-							Copy image
-						</DropdownMenu.Item>
-						<DropdownMenu.Item onclick={copyShareLink}>
-							<LinkIcon class="size-4" />
-							Copy share link
-						</DropdownMenu.Item>
-						<DropdownMenu.Separator />
-
-						<DropdownMenu.Sub>
-							<DropdownMenu.SubTrigger>
-								<FolderOpenIcon class="size-4" />
-								Load saved
-							</DropdownMenu.SubTrigger>
-							<DropdownMenu.SubContent class="w-64">
-								{#if savedRecipes.length === 0}
-									<DropdownMenu.Item disabled>No saved recipes</DropdownMenu.Item>
-								{:else}
-									{#each savedRecipes as saved}
-										<DropdownMenu.Item onclick={() => loadRecipeById(saved.id)}>
-											<span class="truncate">{saved.name}</span>
-										</DropdownMenu.Item>
-									{/each}
-								{/if}
-							</DropdownMenu.SubContent>
-						</DropdownMenu.Sub>
-
-						<DropdownMenu.Sub>
-							<DropdownMenu.SubTrigger>
-								<Trash2Icon class="size-4" />
-								Delete saved
-							</DropdownMenu.SubTrigger>
-							<DropdownMenu.SubContent class="w-64">
-								{#if savedRecipes.length === 0}
-									<DropdownMenu.Item disabled>No saved recipes</DropdownMenu.Item>
-								{:else}
-									{#each savedRecipes as saved}
-										<DropdownMenu.Item
-											variant="destructive"
-											onclick={() => queueDeleteRecipeById(saved.id)}
-										>
-											<span class="truncate">{saved.name}</span>
-										</DropdownMenu.Item>
-									{/each}
-								{/if}
-							</DropdownMenu.SubContent>
-						</DropdownMenu.Sub>
-
-						<DropdownMenu.Separator />
-						<DropdownMenu.Item variant="destructive" onclick={() => (isResetDialogOpen = true)}>
-							<RotateCcwIcon class="size-4" />
-							Reset to default
-						</DropdownMenu.Item>
-					</DropdownMenu.Content>
-				</DropdownMenu.Root>
-			</div>
-		</div>
-	</header>
-
-		<main class="mx-auto w-full max-w-[118rem] px-4 pt-4 sm:px-6 lg:px-10 lg:pt-5">
-		<div class="mb-4 flex items-center gap-2 md:hidden">
-			<p class="min-w-0 flex-1 truncate text-sm font-medium text-foreground/90">{displayRecipeName}</p>
-			{#if isSharedView}
-				<Badge.Badge variant="outline" class="border-sky-200 bg-sky-100/80 text-sky-900">
-					Shared
-				</Badge.Badge>
-			{:else}
-				<Badge.Badge
-					variant="outline"
-					class={isDirty
-						? 'border-amber-200 bg-amber-100/70 text-amber-900'
-						: 'border-emerald-200 bg-emerald-100/70 text-emerald-900'}
-				>
-					{isDirty ? 'Unsaved' : 'Saved'}
-				</Badge.Badge>
-			{/if}
-		</div>
+		</header>
 
 		{#if isSharedView}
-			<div class="mb-4 rounded-3xl border border-sky-200/80 bg-white/80 p-4 shadow-sm backdrop-blur sm:p-5">
-				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-					<div class="space-y-1">
-						<p class="text-[0.7rem] font-semibold tracking-[0.18em] text-sky-700 uppercase">Shared recipe</p>
-						<p class="text-sm text-stone-700">
-							Viewing "{sharedRecipeName}" from a link. Your local draft stays separate until you import this recipe.
+			<div class="mt-5 rounded-[1.75rem] border border-sky-200 bg-white/80 px-5 py-4 shadow-sm">
+				<div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+					<div>
+						<p class="text-[0.72rem] font-semibold tracking-[0.26em] text-sky-700 uppercase">Shared recipe</p>
+						<p class="mt-1 text-sm text-stone-700">
+							Viewing "{sharedRecipeName}" from a link. Import it into your draft before saving changes.
 						</p>
 					</div>
 					<div class="flex flex-wrap gap-2">
-						<Button.Root variant="outline" class="gap-2" onclick={restoreLocalDraft}>
-							<RotateCcwIcon class="size-4" />
+						<Button.Root variant="outline" class="rounded-full border-stone-300 bg-white px-5" onclick={restoreLocalDraft}>
 							My draft
 						</Button.Root>
-						<Button.Root class="gap-2" onclick={useSharedRecipeAsDraft}>
+						<Button.Root class="rounded-full bg-stone-950 px-5 text-white" onclick={useSharedRecipeAsDraft}>
 							<CopyPlusIcon class="size-4" />
 							Use as draft
 						</Button.Root>
@@ -525,66 +329,75 @@
 			</div>
 		{/if}
 
-		<div class="lg:hidden">
-			{#if isSharedView}
-				<div class="rounded-[1.35rem] border border-stone-200/50 bg-white/30 p-0.5 shadow-md shadow-stone-200/25 sm:rounded-3xl sm:p-4">
-					<RecipePreview {recipe} onRecipeChange={handleRecipeChange} readonly />
+		<section class="mt-4 grid gap-8 xl:grid-cols-[560px_minmax(0,1fr)]">
+			<div class="bg-transparent pr-6 xl:border-r xl:border-stone-300/35">
+				<div class="px-0 py-7">
+					<h1 class="font-serif text-5xl leading-none text-stone-950">Recipe Builder</h1>
+					<p class="mt-3 text-2xl italic text-stone-600">Crafting your next masterpiece</p>
 				</div>
-			{:else}
-				<Tabs.Root bind:value={activeMobileTab} class="w-full gap-4">
-					<Tabs.List class="grid h-11 w-full grid-cols-2 rounded-2xl border border-stone-200/70 bg-white/80 p-1 shadow-sm backdrop-blur">
-						<Tabs.Trigger value="editor">Editor</Tabs.Trigger>
-						<Tabs.Trigger value="preview">Preview</Tabs.Trigger>
-					</Tabs.List>
-					<Tabs.Content value="editor">
-						<RecipeEditor {recipe} onRecipeChange={handleRecipeChange} />
-					</Tabs.Content>
-					<Tabs.Content value="preview">
-						<div class="rounded-[1.35rem] border border-stone-200/50 bg-white/30 p-0.5 shadow-md shadow-stone-200/25 sm:rounded-3xl sm:p-4">
-							<RecipePreview {recipe} onRecipeChange={handleRecipeChange} />
-						</div>
-					</Tabs.Content>
-				</Tabs.Root>
-			{/if}
-		</div>
-
-		{#if isSharedView}
-			<section class="hidden pb-5 lg:block">
-				<div
-					class="rounded-[2rem] border border-stone-200/70 bg-linear-to-b from-white/70 via-white/55 to-white/40 p-6 shadow-xl shadow-stone-200/50 backdrop-blur xl:p-7"
-				>
-					<div class="mb-5 flex items-center justify-between px-1">
-						<div class="space-y-1">
-							<p class="text-[0.7rem] font-semibold tracking-[0.18em] text-amber-700 uppercase">Shared Preview</p>
-							<p class="text-sm text-stone-600">Viewing a shared recipe card from a link.</p>
-						</div>
-					</div>
-					<RecipePreview {recipe} onRecipeChange={handleRecipeChange} readonly />
+				<div class="scrollbar-hidden max-h-[calc(100vh-14rem)] overflow-y-auto px-0 py-5">
+					<RecipeEditor {recipe} onRecipeChange={handleRecipeChange} readonly={isSharedView} />
 				</div>
-			</section>
-		{:else}
-			<div class="hidden grid-cols-14 gap-7 pb-5 lg:grid">
-				<section class="app-scrollbar col-span-5 max-h-[calc(100vh-7.2rem)] overflow-y-auto pr-2">
-					<div class="pr-1">
-						<RecipeEditor {recipe} onRecipeChange={handleRecipeChange} />
-					</div>
-				</section>
-				<section class="col-span-9">
-					<div
-						class="sticky top-23 min-h-[calc(100vh-7.5rem)] rounded-[2rem] border border-stone-200/70 bg-linear-to-b from-white/70 via-white/55 to-white/40 p-6 shadow-xl shadow-stone-200/50 backdrop-blur xl:p-7"
+				<div class="grid gap-3 px-0 py-5 sm:grid-cols-2">
+					<Button.Root
+						variant="outline"
+						class="h-16 rounded-2xl border-0 bg-[#ddd6c8] text-lg text-stone-900 shadow-none"
+						onclick={saveCurrentSnapshot}
+						disabled={isSharedView}
 					>
-						<div class="mb-5 flex items-center justify-between px-1">
-							<div class="space-y-1">
-								<p class="text-[0.7rem] font-semibold tracking-[0.18em] text-amber-700 uppercase">Live Preview</p>
-								<p class="text-sm text-stone-600">Typography and spacing update as you edit.</p>
-							</div>
-						</div>
-						<RecipePreview {recipe} onRecipeChange={handleRecipeChange} />
-					</div>
-				</section>
+						<CopyIcon class="size-5" />
+						Save Draft
+					</Button.Root>
+					<Button.Root
+						class="h-16 rounded-2xl bg-stone-950 text-lg text-white shadow-[0_20px_30px_-24px_rgba(0,0,0,0.8)]"
+						onclick={publishRecipe}
+						disabled={isSharedView}
+					>
+						<SparklesIcon class="size-5" />
+						Publish
+					</Button.Root>
+				</div>
 			</div>
-		{/if}
-	</main>
+
+			<div class="min-w-0 bg-[#f8f1e4] pl-2 xl:pl-6">
+				<div class="flex h-full flex-col">
+					<div class="mb-5 flex items-start justify-between gap-3">
+						<div></div>
+						<div class="flex items-center gap-3">
+							<p class="text-[0.74rem] tracking-[0.28em] text-stone-700 uppercase">Live Preview</p>
+							<span class="inline-block size-2 rounded-full bg-[#f5b67d]"></span>
+						</div>
+					</div>
+					<div class="min-w-0">
+						<RecipePreview {recipe} onRecipeChange={handleRecipeChange} readonly={isSharedView} />
+					</div>
+					<div class="mt-6 flex flex-wrap justify-center gap-4">
+						<Button.Root
+							variant="outline"
+							class="h-12 rounded-full border-0 bg-[#ece3d3] px-8 tracking-[0.16em] uppercase shadow-none"
+							onclick={copyRecipeImage}
+						>
+							View Fullscreen
+						</Button.Root>
+						<Button.Root
+							variant="outline"
+							class="h-12 rounded-full border-0 bg-[#ece3d3] px-8 tracking-[0.16em] uppercase shadow-none"
+							onclick={openImportDialog}
+						>
+							Import JSON
+						</Button.Root>
+						<Button.Root
+							variant="outline"
+							class="h-12 rounded-full border-0 bg-[#ece3d3] px-8 tracking-[0.16em] uppercase shadow-none"
+							onclick={() => (isResetDialogOpen = true)}
+						>
+							Reset Recipe
+						</Button.Root>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
 </div>
 
 <AlertDialog.Root bind:open={isResetDialogOpen}>
@@ -625,21 +438,6 @@
 		<AlertDialog.Footer>
 			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
 			<AlertDialog.Action onclick={applyImportJson}>Import</AlertDialog.Action>
-		</AlertDialog.Footer>
-	</AlertDialog.Content>
-</AlertDialog.Root>
-
-<AlertDialog.Root bind:open={isDeleteDialogOpen}>
-	<AlertDialog.Content>
-		<AlertDialog.Header>
-			<AlertDialog.Title>Delete saved recipe?</AlertDialog.Title>
-			<AlertDialog.Description>
-				This only removes the saved snapshot from browser storage.
-			</AlertDialog.Description>
-		</AlertDialog.Header>
-		<AlertDialog.Footer>
-			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-			<AlertDialog.Action onclick={confirmDeleteRecipe}>Delete</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>
