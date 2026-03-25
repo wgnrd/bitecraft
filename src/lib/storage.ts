@@ -2,6 +2,7 @@ import type {
 	Recipe,
 	RecipeCollection,
 	RecipeIngredient,
+	RecipeTag,
 	RecipeTheme,
 	SavedRecipe
 } from '$lib/types';
@@ -103,6 +104,35 @@ const toIngredientList = (value: unknown): RecipeIngredient[] => {
 		.filter((entry): entry is RecipeIngredient => entry !== null);
 };
 
+const normalizeTag = (value: unknown): RecipeTag | null => {
+	if (!value || typeof value !== 'object') {
+		return null;
+	}
+
+	const candidate = value as Partial<Record<keyof RecipeTag, unknown>>;
+	const label = typeof candidate.label === 'string' ? candidate.label.slice(0, 32).trim() : '';
+	const color =
+		typeof candidate.color === 'string' && /^#([0-9a-fA-F]{6})$/.test(candidate.color)
+			? candidate.color
+			: '#f7cfb0';
+
+	if (!label) {
+		return null;
+	}
+
+	return { label, color };
+};
+
+const toTagList = (value: unknown): RecipeTag[] => {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value
+		.map((entry) => normalizeTag(entry))
+		.filter((entry): entry is RecipeTag => entry !== null);
+};
+
 const toClampedNumber = (value: unknown, min: number, max: number, fallback: number): number => {
 	if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
 		return fallback;
@@ -117,6 +147,7 @@ export const normalizeRecipe = (value: unknown): Recipe | null => {
 	}
 
 	const candidate = value as Partial<Record<keyof Recipe, unknown>>;
+	const legacyCandidate = candidate as Partial<Record<'tagLabel' | 'tagColor', unknown>>;
 	const theme =
 		typeof candidate.theme === 'string' && VALID_THEMES.includes(candidate.theme as RecipeTheme)
 			? (candidate.theme as RecipeTheme)
@@ -125,6 +156,25 @@ export const normalizeRecipe = (value: unknown): Recipe | null => {
 	return {
 		title: typeof candidate.title === 'string' ? candidate.title.slice(0, 120) : '',
 		description: typeof candidate.description === 'string' ? candidate.description.slice(0, 320) : '',
+		tags: (() => {
+			const normalizedTags = toTagList(candidate.tags);
+			if (normalizedTags.length > 0) {
+				return normalizedTags;
+			}
+
+			const legacyLabel =
+				typeof legacyCandidate.tagLabel === 'string'
+					? legacyCandidate.tagLabel.slice(0, 32).trim()
+					: '';
+			const legacyColor =
+				typeof legacyCandidate.tagColor === 'string' &&
+				/^#([0-9a-fA-F]{6})$/.test(legacyCandidate.tagColor)
+					? legacyCandidate.tagColor
+					: '#f7cfb0';
+
+			return legacyLabel ? [{ label: legacyLabel, color: legacyColor }] : [];
+		})(),
+		showHeroImage: typeof candidate.showHeroImage === 'boolean' ? candidate.showHeroImage : true,
 		heroImageUrl:
 			typeof candidate.heroImageUrl === 'string' ? candidate.heroImageUrl.trim().slice(0, 2048) : '',
 		heroImageScale: toClampedNumber(candidate.heroImageScale, 1, 3, DEFAULT_HERO_IMAGE_SCALE),

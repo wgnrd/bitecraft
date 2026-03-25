@@ -6,9 +6,16 @@ export type RecipeIngredient = {
 	unit: string;
 };
 
+export type RecipeTag = {
+	label: string;
+	color: string;
+};
+
 export type Recipe = {
 	title: string;
 	description: string;
+	tags: RecipeTag[];
+	showHeroImage: boolean;
 	heroImageUrl: string;
 	heroImageScale: number;
 	heroImagePositionX: number;
