@@ -234,30 +234,23 @@
 	onpointercancel={endDrag}
 />
 
-<div class="space-y-5 pb-5">
-	<section
-			class="rounded-3xl border border-stone-200/70 bg-white/80 p-5 shadow-lg shadow-amber-100/35 backdrop-blur sm:p-6 xl:p-7"
-		>
-		<div class="mb-5 flex items-end justify-between gap-4">
-			<div class="space-y-1">
-				<p class="text-[0.7rem] font-semibold tracking-[0.18em] text-amber-700 uppercase">Recipe Details</p>
-				<h2 class="text-xl font-semibold tracking-tight text-stone-900 sm:text-2xl">Basics</h2>
-				<p class="text-sm text-stone-600">Start with the core information for the recipe card.</p>
-			</div>
+<div class="space-y-8 pb-5">
+	<section class="border-b border-stone-200/70 pb-8">
+		<div class="mb-8">
+			<p class="text-[0.95rem] font-semibold tracking-[0.24em] text-stone-700 uppercase">Recipe Details</p>
 		</div>
 
 		<div class="space-y-6">
 			<section class="space-y-2">
 				<div class="flex items-center justify-between gap-2">
-					<label for="recipe-title" class="text-sm font-medium text-stone-800">Title</label>
-					<p class="text-xs text-stone-500">{recipe.title.length}/120</p>
+					<label for="recipe-title" class="text-[1.1rem] font-medium text-stone-700">Recipe Title</label>
 				</div>
 				<Input.Root
 					id="recipe-title"
 					maxlength={120}
 					disabled={readonly}
 					placeholder="e.g. Creamy Tomato Gnocchi"
-					class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+					class="h-20 rounded-2xl border-0 bg-white px-6 font-serif text-[2rem] text-stone-900 shadow-none transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 					value={recipe.title}
 					oninput={(event) => updateRecipe({ title: event.currentTarget.value.slice(0, 120) })}
 				/>
@@ -265,8 +258,7 @@
 
 			<section class="space-y-2">
 				<div class="flex items-center justify-between gap-2">
-					<label for="recipe-description" class="text-sm font-medium text-stone-800">Description</label>
-					<p class="text-xs text-stone-500">{recipe.description.length}/320</p>
+					<label for="recipe-description" class="text-[1.1rem] font-medium text-stone-700">Description</label>
 				</div>
 				<Textarea.Root
 					id="recipe-description"
@@ -274,113 +266,52 @@
 					disabled={readonly}
 					rows={4}
 					placeholder="Tell people what makes this recipe special."
-					class="min-h-28 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 py-2.5 text-sm leading-relaxed transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+					class="min-h-40 rounded-2xl border-0 bg-white px-6 py-5 text-[1rem] leading-[1.7] text-stone-700 shadow-none transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 					value={recipe.description}
 					oninput={(event) => updateRecipe({ description: event.currentTarget.value.slice(0, 320) })}
 				/>
 			</section>
 
-			<section class="space-y-2">
-				<div class="flex items-center justify-between gap-2">
-					<label for="recipe-hero-image" class="text-sm font-medium text-stone-800">Hero image URL</label>
-					<p class="text-xs text-stone-500">{recipe.heroImageUrl.length}/2048</p>
-				</div>
-				<Input.Root
-					id="recipe-hero-image"
-					type="url"
-					maxlength={2048}
-					disabled={readonly}
-					placeholder="https://images.example.com/your-dish.jpg"
-					class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
-					value={recipe.heroImageUrl}
-					oninput={(event) => updateHeroImageUrl(event.currentTarget.value)}
-				/>
-				<p class="text-xs leading-5 text-stone-500">
-					Optional. Paste a direct image URL, then drag the image in the live preview and use the
-					mouse wheel to zoom.
-				</p>
-			</section>
-
-			<section class="grid gap-3 sm:grid-cols-3">
+			<section class="grid gap-4 sm:grid-cols-2">
 				<div class="space-y-2">
-					<label for="servings" class="text-sm font-medium text-stone-800">Servings</label>
+					<label for="servings" class="text-[1.1rem] font-medium text-stone-700">Servings</label>
 					<Input.Root
 						id="servings"
-						type="number"
-						min={0}
 						disabled={readonly}
-						placeholder="4"
-						class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
-						value={recipe.servings?.toString() ?? ''}
+						placeholder="4-6"
+						class="h-18 rounded-2xl border-0 bg-white px-6 text-[1rem] shadow-none transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+						value={recipe.servings === null ? '' : `${recipe.servings}`}
 						oninput={(event) => updateNumber('servings', event.currentTarget.value)}
 					/>
 				</div>
 				<div class="space-y-2">
-					<label for="prep-minutes" class="text-sm font-medium text-stone-800">Prep (min)</label>
+					<label for="prep-minutes" class="text-[1.1rem] font-medium text-stone-700">Prep Time</label>
 					<Input.Root
 						id="prep-minutes"
-						type="number"
-						min={0}
 						disabled={readonly}
-						placeholder="15"
-						class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
-						value={recipe.prepMinutes?.toString() ?? ''}
+						placeholder="20 mins"
+						class="h-18 rounded-2xl border-0 bg-white px-6 text-[1rem] shadow-none transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+						value={recipe.prepMinutes === null ? '' : `${recipe.prepMinutes}`}
 						oninput={(event) => updateNumber('prepMinutes', event.currentTarget.value)}
-					/>
-				</div>
-				<div class="space-y-2">
-					<label for="cook-minutes" class="text-sm font-medium text-stone-800">Cook (min)</label>
-					<Input.Root
-						id="cook-minutes"
-						type="number"
-						min={0}
-						disabled={readonly}
-						placeholder="25"
-						class="h-11 rounded-xl border-stone-200 bg-stone-50/80 px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
-						value={recipe.cookMinutes?.toString() ?? ''}
-						oninput={(event) => updateNumber('cookMinutes', event.currentTarget.value)}
 					/>
 				</div>
 			</section>
 		</div>
 	</section>
 
-	<section class="rounded-3xl border border-stone-200/70 bg-white/80 p-5 shadow-lg shadow-amber-100/35 backdrop-blur sm:p-6 xl:p-7">
-		<div class="mb-4 space-y-1">
-			<p class="text-[0.7rem] font-semibold tracking-[0.18em] text-amber-700 uppercase">Style</p>
-			<h2 class="text-xl font-semibold tracking-tight text-stone-900">Theme</h2>
-			<p class="text-sm text-stone-600">Choose how the live recipe card should feel and read.</p>
-		</div>
-		<Tabs.Root value={recipe.theme} onValueChange={setTheme} class="w-full gap-0">
-			<Tabs.List class="grid h-auto w-full grid-cols-1 gap-2.5 bg-transparent p-0 sm:grid-cols-3">
-				{#each themeOptions as option}
-						<Tabs.Trigger
-							value={option.value}
-							disabled={readonly}
-							class="group h-auto min-h-32 flex-col items-start rounded-2xl border border-stone-200/80 bg-stone-50/80 px-4 py-4 text-left whitespace-normal shadow-sm transition-all duration-200 hover:border-amber-300/80 hover:bg-white data-[state=active]:border-amber-400 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-amber-100/70 xl:min-h-36 xl:px-5"
-						>
-							<div class="mb-3 flex h-10 w-full items-center justify-center rounded-lg" style={`background: ${option.swatchStyle}`}>
-								<div class="flex size-7 items-center justify-center rounded-full bg-white/75 text-stone-700 shadow-sm backdrop-blur">
-									<option.icon class="size-3.5" />
-								</div>
-							</div>
-							<div class="text-base font-semibold text-stone-900">{option.label}</div>
-							<p class="mt-1 w-full break-words text-sm leading-relaxed text-stone-600">{option.description}</p>
-						</Tabs.Trigger>
-				{/each}
-			</Tabs.List>
-		</Tabs.Root>
-	</section>
-
-	<section class="rounded-3xl border border-stone-200/70 bg-white/80 p-5 shadow-lg shadow-amber-100/35 backdrop-blur sm:p-6 xl:p-7">
-		<div class="mb-4 flex items-center justify-between gap-4">
+	<section class="border-b border-stone-200/70 pb-8">
+		<div class="mb-6 flex items-center justify-between gap-4">
 			<div class="space-y-1">
-				<p class="text-[0.7rem] font-semibold tracking-[0.18em] text-amber-700 uppercase">Shopping List</p>
-				<h2 class="text-xl font-semibold tracking-tight text-stone-900">Ingredients</h2>
+				<p class="text-[0.95rem] font-semibold tracking-[0.24em] text-stone-700 uppercase">Ingredients</p>
 			</div>
-			<span class="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-xs font-medium text-stone-600">
-				{recipe.ingredients.length} ingredient{recipe.ingredients.length === 1 ? '' : 's'}
-			</span>
+			<button
+				type="button"
+				class="text-sm font-semibold tracking-[0.08em] text-amber-700 uppercase transition hover:text-amber-800"
+				onclick={addIngredient}
+				disabled={readonly}
+			>
+				+ Add Row
+			</button>
 		</div>
 
 		<div class="space-y-4">
@@ -394,102 +325,75 @@
 					{#each recipe.ingredients as ingredient, index (index)}
 					<div
 							bind:this={ingredientRowRefs[index]}
-							class="group rounded-2xl border border-stone-200/80 bg-stone-50/70 p-3 transition-all duration-200 hover:border-stone-300 hover:bg-white"
+							class="group grid gap-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center"
 						animate:flip={{ duration: 200 }}
 						in:fly={{ y: 6, duration: 180 }}
 						out:fade={{ duration: 130 }}
 					>
-						<div class="flex items-start justify-between gap-3">
-							<div class="flex items-center gap-1.5 pl-1 text-stone-400">
-								<Button.Root
-									variant="ghost"
-									size="icon-sm"
-									disabled={readonly}
-									class="touch-none text-stone-500 hover:bg-amber-100 hover:text-amber-900"
-									aria-label={`Drag ingredient ${index + 1} to reorder`}
-									title="Drag to reorder"
-									onpointerdown={(event) => startDrag('ingredients', index, event)}
-								>
-									<GripVerticalIcon class="size-4" />
-								</Button.Root>
-								<span class="w-4 text-center text-xs font-medium text-stone-500">{index + 1}</span>
-							</div>
-							<div
-								class="flex items-center gap-1 rounded-xl bg-white/70 p-1 opacity-100 transition-all duration-200 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
-							>
-								<Button.Root
-									variant="ghost"
-									size="icon-sm"
-									disabled={readonly}
-									class="text-stone-500 hover:bg-destructive/10 hover:text-destructive"
-									onclick={() => removeItem('ingredients', index)}
-									aria-label={`Remove ingredient ${index + 1}`}
-									title="Remove"
-								>
-									<Trash2Icon class="size-4" />
-								</Button.Root>
-							</div>
-						</div>
-						<div class="mt-3 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_7rem_7rem]">
-							<Input.Root
-								aria-label={`Ingredient ${index + 1} name`}
+						<div class="flex items-center gap-1.5">
+							<Button.Root
+								variant="ghost"
+								size="icon-sm"
 								disabled={readonly}
-								placeholder="Fresh parsley"
-								class="min-w-0 h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
-								value={ingredient.name}
-								oninput={(event) => updateIngredient(index, 'name', event.currentTarget.value)}
-							/>
+								class="hidden touch-none text-stone-400 hover:bg-amber-100 hover:text-amber-900 group-hover:inline-flex"
+								aria-label={`Drag ingredient ${index + 1} to reorder`}
+								title="Drag to reorder"
+								onpointerdown={(event) => startDrag('ingredients', index, event)}
+							>
+								<GripVerticalIcon class="size-4" />
+							</Button.Root>
 							<Input.Root
 								aria-label={`Ingredient ${index + 1} amount`}
-								type="number"
-								min={0}
-								step="any"
 								disabled={readonly}
-								placeholder="2"
-								class="h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
-								value={ingredient.amount?.toString() ?? ''}
-								oninput={(event) => updateIngredientAmount(index, event.currentTarget.value)}
-							/>
-							<Input.Root
-								aria-label={`Ingredient ${index + 1} unit`}
-								disabled={readonly}
-								placeholder="tbsp"
-								class="h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
-								value={ingredient.unit}
-								oninput={(event) => updateIngredient(index, 'unit', event.currentTarget.value)}
+								placeholder="2 lbs"
+								class="h-14 rounded-2xl border-0 bg-white px-5 text-[1rem] shadow-none transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+								value={[
+									ingredient.amount === null ? '' : `${ingredient.amount}`,
+									ingredient.unit
+								]
+									.filter(Boolean)
+									.join(' ')}
+								oninput={(event) => {
+									const value = event.currentTarget.value.trim();
+									const match = value.match(/^(\d+(?:\.\d+)?(?:\/\d+)?)?\s*(.*)$/);
+									const amountValue = match?.[1] ?? '';
+									const unitValue = match?.[2] ?? '';
+									const numeric = Number.parseFloat(amountValue);
+									updateIngredient(index, 'amount', Number.isNaN(numeric) ? null : numeric);
+									updateIngredient(index, 'unit', unitValue);
+								}}
 							/>
 						</div>
+						<Input.Root
+							aria-label={`Ingredient ${index + 1} name`}
+							disabled={readonly}
+							placeholder="Heirloom Tomatoes, sliced"
+							class="min-w-0 h-14 rounded-2xl border-0 bg-white px-5 text-[1rem] shadow-none transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+							value={ingredient.name}
+							oninput={(event) => updateIngredient(index, 'name', event.currentTarget.value)}
+						/>
 					</div>
 				{/each}
-			</div>
-
-				<div class="rounded-2xl border border-stone-200/80 bg-stone-50/70 p-2.5">
-				<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-					<p class="px-2 text-sm text-stone-600">
-						Add structured ingredients with separate name, amount, and unit fields.
-					</p>
-					<Button.Root
-							disabled={readonly}
-							class="h-11 gap-1.5 rounded-xl bg-stone-900 px-4.5 text-stone-50 transition hover:bg-stone-800"
-						onclick={addIngredient}
-					>
-						<PlusIcon class="size-4" />
-						Add ingredient
-					</Button.Root>
-				</div>
 			</div>
 		</div>
 	</section>
 
-	<section class="rounded-3xl border border-stone-200/70 bg-white/80 p-5 shadow-lg shadow-amber-100/35 backdrop-blur sm:p-6 xl:p-7">
-		<div class="mb-4 flex items-center justify-between gap-4">
+	<section class="pb-2">
+		<div class="mb-6 flex items-center justify-between gap-4">
 			<div class="space-y-1">
-				<p class="text-[0.7rem] font-semibold tracking-[0.18em] text-amber-700 uppercase">Method</p>
-				<h2 class="text-xl font-semibold tracking-tight text-stone-900">Steps</h2>
+				<p class="text-[0.95rem] font-semibold tracking-[0.24em] text-stone-700 uppercase">Method</p>
 			</div>
-			<span class="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-xs font-medium text-stone-600">
-				{recipe.steps.length} step{recipe.steps.length === 1 ? '' : 's'}
-			</span>
+			<button
+				type="button"
+				class="text-sm font-semibold tracking-[0.08em] text-amber-700 uppercase transition hover:text-amber-800"
+				onclick={() => {
+					addStep(stepDraft || `Step ${recipe.steps.length + 1}`);
+					stepDraft = '';
+				}}
+				disabled={readonly}
+			>
+				+ Add Step
+			</button>
 		</div>
 
 		<div class="space-y-4">
@@ -503,36 +407,36 @@
 					{#each recipe.steps as step, index (index)}
 					<div
 							bind:this={stepRowRefs[index]}
-							class="group rounded-2xl border border-stone-200/80 bg-stone-50/70 p-3 transition-all duration-200 hover:border-stone-300 hover:bg-white"
+							class="group rounded-2xl bg-white px-4 py-4"
 						animate:flip={{ duration: 200 }}
 						in:fly={{ y: 6, duration: 180 }}
 						out:fade={{ duration: 130 }}
 					>
 							<div class="flex items-start gap-2.5">
-								<div class="mt-3 flex items-center gap-1.5 pl-1 text-stone-400">
+								<div class="mt-1 flex items-center gap-1.5 pl-1 text-stone-400">
 								<Button.Root
 									variant="ghost"
 									size="icon-sm"
 									disabled={readonly}
-									class="touch-none text-stone-500 hover:bg-amber-100 hover:text-amber-900"
+									class="hidden touch-none text-stone-500 hover:bg-amber-100 hover:text-amber-900 group-hover:inline-flex"
 									aria-label={`Drag step ${index + 1} to reorder`}
 									title="Drag to reorder"
 									onpointerdown={(event) => startDrag('steps', index, event)}
 								>
 									<GripVerticalIcon class="size-4" />
 								</Button.Root>
-								<span class="w-4 text-center text-xs font-medium text-stone-500">{index + 1}</span>
+								<span class="w-6 text-center text-sm font-medium text-amber-700">{String(index + 1).padStart(2, '0')}</span>
 							</div>
 							<Textarea.Root
 								rows={2}
 								aria-label={`Step ${index + 1}`}
 								disabled={readonly}
-									class="min-h-24 min-w-0 flex-1 rounded-xl border-stone-200 bg-white px-3.5 py-2.5 text-sm leading-relaxed transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+									class="min-h-20 min-w-0 flex-1 rounded-xl border-0 bg-transparent px-2 py-1 text-[1rem] leading-relaxed shadow-none transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
 								value={step}
 								oninput={(event) => updateStep(index, event.currentTarget.value)}
 							/>
 							<div
-								class="flex shrink-0 flex-col gap-1 rounded-xl bg-white/70 p-1 opacity-100 transition-all duration-200 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
+								class="hidden shrink-0 flex-col gap-1 rounded-xl bg-white/70 p-1 opacity-100 transition-all duration-200 sm:group-focus-within:flex sm:group-hover:flex"
 							>
 								<Button.Root
 									variant="ghost"
@@ -552,34 +456,71 @@
 			</div>
 
 			<Separator.Root class="bg-stone-200/80" />
+		</div>
+	</section>
 
-				<div class="rounded-2xl border border-stone-200/80 bg-stone-50/70 p-2.5">
+	<section class="border-t border-stone-200/70 pt-8">
+		<div class="space-y-6">
+			<section class="space-y-2">
+				<div class="flex items-center justify-between gap-2">
+					<label for="recipe-hero-image" class="text-[0.95rem] font-medium text-stone-700">Hero image URL</label>
+					<p class="text-xs text-stone-500">{recipe.heroImageUrl.length}/2048</p>
+				</div>
 				<Input.Root
-					aria-label="New step"
+					id="recipe-hero-image"
+					type="url"
+					maxlength={2048}
 					disabled={readonly}
-					placeholder="e.g. Simmer for 10 minutes"
-						class="h-11 rounded-xl border-stone-200 bg-white px-3.5 text-sm transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
-					bind:value={stepDraft}
-					onkeydown={(event) => {
-						if (event.key === 'Enter') {
-							event.preventDefault();
-							addStep(stepDraft);
-							stepDraft = '';
-						}
-					}}
+					placeholder="https://images.example.com/your-dish.jpg"
+					class="h-14 rounded-2xl border-0 bg-white px-5 text-[1rem] shadow-none transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+					value={recipe.heroImageUrl}
+					oninput={(event) => updateHeroImageUrl(event.currentTarget.value)}
 				/>
-				<Button.Root
-						disabled={readonly || !stepDraft.trim()}
-						class="mt-2 h-11 w-full gap-1.5 rounded-xl bg-stone-900 px-4.5 text-stone-50 transition hover:bg-stone-800 sm:mt-0 sm:w-auto"
-					onclick={() => {
-						addStep(stepDraft);
-						stepDraft = '';
-					}}
-				>
-					<PlusIcon class="size-4" />
-					Add step
-				</Button.Root>
-			</div>
+				<p class="text-xs leading-5 text-stone-500">
+					Optional. Paste a direct image URL, then drag the image in the live preview and use the
+					mouse wheel to zoom.
+				</p>
+			</section>
+
+			<section class="grid gap-4 sm:grid-cols-[1fr_1fr]">
+				<div class="space-y-2">
+					<label for="cook-minutes" class="text-[0.95rem] font-medium text-stone-700">Cook Time</label>
+					<Input.Root
+						id="cook-minutes"
+						disabled={readonly}
+						placeholder="30 mins"
+						class="h-14 rounded-2xl border-0 bg-white px-5 text-[1rem] shadow-none transition focus-visible:border-amber-300 focus-visible:ring-amber-200/70"
+						value={recipe.cookMinutes === null ? '' : `${recipe.cookMinutes}`}
+						oninput={(event) => updateNumber('cookMinutes', event.currentTarget.value)}
+					/>
+				</div>
+			</section>
+
+			<section>
+				<div class="mb-4 space-y-1">
+					<p class="text-[0.7rem] font-semibold tracking-[0.18em] text-amber-700 uppercase">Style</p>
+					<h2 class="text-xl font-semibold tracking-tight text-stone-900">Theme</h2>
+				</div>
+				<Tabs.Root value={recipe.theme} onValueChange={setTheme} class="w-full gap-0">
+					<Tabs.List class="grid h-auto w-full grid-cols-1 gap-2.5 bg-transparent p-0 sm:grid-cols-3">
+						{#each themeOptions as option}
+							<Tabs.Trigger
+								value={option.value}
+								disabled={readonly}
+								class="group h-auto min-h-28 flex-col items-start rounded-2xl border border-stone-200/80 bg-stone-50/80 px-4 py-4 text-left whitespace-normal shadow-none transition-all duration-200 hover:border-amber-300/80 hover:bg-white data-[state=active]:border-amber-400 data-[state=active]:bg-white xl:px-5"
+							>
+								<div class="mb-3 flex h-10 w-full items-center justify-center rounded-lg" style={`background: ${option.swatchStyle}`}>
+									<div class="flex size-7 items-center justify-center rounded-full bg-white/75 text-stone-700 shadow-sm backdrop-blur">
+										<option.icon class="size-3.5" />
+									</div>
+								</div>
+								<div class="text-base font-semibold text-stone-900">{option.label}</div>
+								<p class="mt-1 w-full break-words text-sm leading-relaxed text-stone-600">{option.description}</p>
+							</Tabs.Trigger>
+						{/each}
+					</Tabs.List>
+				</Tabs.Root>
+			</section>
 		</div>
 	</section>
 </div>

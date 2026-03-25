@@ -309,9 +309,7 @@ export const saveCollection = (
 	collection: Pick<RecipeCollection, 'name' | 'description'>,
 	id?: string
 ): RecipeCollection => {
-	const current = loadCollections().filter(
-		(entry) => !DEFAULT_COLLECTIONS.some((starter) => starter.id === entry.id) || localStorage.getItem(COLLECTIONS_KEY)
-	);
+	const current = loadCollections();
 	const now = new Date().toISOString();
 	const nextCollection: RecipeCollection = {
 		id: id ?? makeId(),

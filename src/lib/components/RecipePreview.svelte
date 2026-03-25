@@ -1,10 +1,6 @@
 <script lang="ts">
-	import Clock3Icon from '@lucide/svelte/icons/clock-3';
-	import FlameIcon from '@lucide/svelte/icons/flame';
-	import UsersIcon from '@lucide/svelte/icons/users';
 	import * as Card from '$lib/components/ui/card';
 	import * as Badge from '$lib/components/ui/badge';
-	import * as Separator from '$lib/components/ui/separator';
 	import { cn } from '$lib/utils';
 	import type { Recipe } from '$lib/types';
 
@@ -127,40 +123,40 @@
 
 	const themeStyles = {
 		classic: {
-			container: 'bg-linear-to-br from-amber-50 via-orange-50 to-stone-100',
-			accent: 'from-amber-500 via-orange-400 to-yellow-400',
-			title: 'font-serif text-stone-900',
-			description: 'text-stone-700',
-			metaBadge: 'border-amber-300/65 bg-amber-100/80 text-amber-950',
-			sectionTitle: 'font-serif text-stone-900',
-			bullet: 'bg-amber-500',
-			stepNumber: 'bg-amber-200 text-amber-900',
-			divider: 'bg-amber-200/70',
-			panel: 'bg-white/65'
+			accent: 'bg-[#f7cfb0] text-[#8a4613]',
+			accentAlt: 'bg-[#e9e2d6] text-stone-700',
+			title: 'font-serif text-stone-950',
+			description: 'text-stone-700 italic',
+			meta: 'text-stone-900',
+			sectionTitle: 'text-stone-900',
+			bullet: 'bg-[#9b4d12]',
+			stepNumber: 'text-[#9b4d12]',
+			rule: 'bg-stone-200',
+			paper: 'bg-white'
 		},
 		minimal: {
-			container: 'bg-white',
-			accent: 'from-stone-300 via-stone-200 to-stone-300',
-			title: 'font-sans tracking-tight text-stone-900',
-			description: 'text-stone-600',
-			metaBadge: 'border-stone-200 bg-stone-100 text-stone-700',
-			sectionTitle: 'font-medium tracking-[0.12em] uppercase text-stone-700',
+			accent: 'bg-stone-200 text-stone-700',
+			accentAlt: 'bg-stone-100 text-stone-600',
+			title: 'font-sans tracking-tight text-stone-950',
+			description: 'text-stone-600 italic',
+			meta: 'text-stone-900',
+			sectionTitle: 'text-stone-900',
 			bullet: 'bg-stone-500',
-			stepNumber: 'border border-stone-200 bg-stone-100 text-stone-700',
-			divider: 'bg-stone-200',
-			panel: 'bg-stone-50/65'
+			stepNumber: 'text-stone-600',
+			rule: 'bg-stone-200',
+			paper: 'bg-white'
 		},
 		bold: {
-			container: 'bg-linear-to-br from-rose-100 via-orange-50 to-yellow-100',
-			accent: 'from-rose-600 via-orange-500 to-yellow-500',
-			title: 'font-black uppercase tracking-tight text-rose-950',
-			description: 'font-medium text-rose-900/80',
-			metaBadge: 'border-rose-900 bg-rose-900 text-rose-100',
-			sectionTitle: 'font-extrabold tracking-[0.14em] uppercase text-rose-900',
-			bullet: 'bg-rose-700',
-			stepNumber: 'bg-rose-900 text-rose-50',
-			divider: 'bg-rose-200',
-			panel: 'bg-white/60'
+			accent: 'bg-[#f5c89d] text-[#803b0b]',
+			accentAlt: 'bg-[#ece1d5] text-stone-700',
+			title: 'font-serif text-stone-950',
+			description: 'text-stone-700 italic',
+			meta: 'text-stone-950',
+			sectionTitle: 'text-stone-900',
+			bullet: 'bg-[#8d3500]',
+			stepNumber: 'text-[#8d3500]',
+			rule: 'bg-stone-200',
+			paper: 'bg-white'
 		}
 	} as const;
 
@@ -172,17 +168,17 @@
 	};
 </script>
 
-	<Card.Root
-		data-recipe-card="true"
-		class={cn(
-			'mx-auto w-full max-w-none gap-0 overflow-hidden rounded-[1rem] border border-stone-200/70 py-0 shadow-xl shadow-stone-200/55 transition-all duration-300 sm:rounded-[1.8rem] sm:shadow-2xl sm:shadow-stone-200/70',
-			cardTheme.container
-		)}
-	>
-	{#if recipe.heroImageUrl}
+<Card.Root
+	data-recipe-card="true"
+	class={cn(
+		'mx-auto w-full max-w-[1120px] overflow-hidden rounded-[1.8rem] py-0 shadow-[0_22px_60px_-44px_rgba(45,30,14,0.22)]',
+		cardTheme.paper
+	)}
+>
+	<div class="grid min-h-[720px] lg:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1fr)]">
 		<div
 			class={cn(
-				'relative aspect-[16/7] w-full overflow-hidden bg-stone-200 touch-none select-none sm:aspect-[16/6] xl:aspect-[16/5]',
+				'relative min-h-[24rem] overflow-hidden bg-stone-900 touch-none select-none lg:min-h-full',
 				readonly ? 'cursor-default' : isDragging ? 'cursor-grabbing' : 'cursor-grab'
 			)}
 			role="group"
@@ -197,101 +193,99 @@
 			onpointerup={handleHeroPointerUp}
 			onpointercancel={handleHeroPointerUp}
 		>
-			<img
-				src={recipe.heroImageUrl}
-				alt={recipe.title ? `${recipe.title} hero image` : 'Recipe hero image'}
-				class="block h-full w-full object-cover"
-				style={`object-position: ${recipe.heroImagePositionX}% ${recipe.heroImagePositionY}%; transform: scale(${recipe.heroImageScale}); transform-origin: center;`}
-				draggable="false"
-			/>
-		</div>
-	{/if}
-	<div class={cn('h-2 w-full bg-linear-to-r', cardTheme.accent, recipe.heroImageUrl ? '-mt-px' : '')}></div>
-
-	<Card.Header
-		class={cn(
-			'gap-3 px-2.5 pb-3 sm:gap-4 sm:px-11 sm:pb-5 xl:px-14 xl:pb-5',
-			recipe.heroImageUrl ? 'pt-3 sm:pt-5' : 'pt-4 sm:pt-11'
-		)}
-	>
-		<div class="space-y-3">
-			<Card.Title class={cn('text-[1.6rem] leading-[1.05] sm:text-[2.6rem]', cardTheme.title)}>
-				{recipe.title || 'Untitled recipe'}
-			</Card.Title>
-			<Card.Description class={cn('max-w-3xl text-[0.95rem] leading-7 sm:text-[1.06rem] sm:leading-8', cardTheme.description)}>
-				{recipe.description || 'Add a short description to introduce your dish and set the tone.'}
-			</Card.Description>
-		</div>
-
-		<div class="flex flex-wrap gap-2.5">
-			<Badge.Badge
-				variant="outline"
-				class={cn('gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-sm backdrop-blur', cardTheme.metaBadge)}
-			>
-				<Clock3Icon class="size-3.5" />
-				Prep {recipe.prepMinutes ?? '-'} min
-			</Badge.Badge>
-			<Badge.Badge
-				variant="outline"
-				class={cn('gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-sm backdrop-blur', cardTheme.metaBadge)}
-			>
-				<FlameIcon class="size-3.5" />
-				Cook {recipe.cookMinutes ?? '-'} min
-			</Badge.Badge>
-			<Badge.Badge
-				variant="outline"
-				class={cn('gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-sm backdrop-blur', cardTheme.metaBadge)}
-			>
-				<UsersIcon class="size-3.5" />
-				Serves {recipe.servings ?? '-'}
-			</Badge.Badge>
-		</div>
-	</Card.Header>
-
-	<Separator.Root class={cn('mx-2.5 sm:mx-11 xl:mx-14', cardTheme.divider)} />
-
-	<Card.Content class="grid gap-2 px-2.5 pb-2.5 pt-3 sm:grid-cols-[1.08fr_1.6fr] sm:gap-10 sm:px-11 sm:pb-10 sm:pt-6 xl:px-14 xl:pb-11 xl:pt-7">
-		<section class={cn('space-y-3 rounded-[0.95rem] border border-transparent p-1.5 sm:space-y-5 sm:rounded-2xl sm:border-white/50 sm:p-6', cardTheme.panel)}>
-			<h3 class={cn('text-[0.7rem]', cardTheme.sectionTitle)}>Ingredients</h3>
-			{#if recipe.ingredients.length === 0}
-				<p class="rounded-xl border border-dashed border-muted-foreground/30 px-4 py-4 text-sm leading-7 text-muted-foreground sm:py-5 sm:text-base sm:leading-8">
-					Add your first ingredient to get started.
-				</p>
+			{#if recipe.heroImageUrl}
+				<img
+					src={recipe.heroImageUrl}
+					alt={recipe.title ? `${recipe.title} hero image` : 'Recipe hero image'}
+					class="absolute inset-0 block h-full w-full object-cover"
+					style={`object-position: ${recipe.heroImagePositionX}% ${recipe.heroImagePositionY}%; transform: scale(${recipe.heroImageScale}); transform-origin: center;`}
+					draggable="false"
+				/>
 			{:else}
-				<ul class="space-y-2.5 sm:space-y-4">
-					{#each recipe.ingredients as ingredient, index (`${ingredient.name}-${index}`)}
-						<li class="flex items-start gap-3 text-sm leading-7 text-foreground/90 sm:gap-3.5 sm:text-base sm:leading-8">
-							<span class={cn('mt-2.5 inline-block size-1.5 rounded-full sm:mt-3', cardTheme.bullet)}></span>
-							<span>{formatIngredient(ingredient)}</span>
-						</li>
-					{/each}
-				</ul>
+				<div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(251,191,36,0.5),transparent_30%),radial-gradient(circle_at_75%_18%,rgba(249,115,22,0.35),transparent_25%),linear-gradient(180deg,#2e3137,#121212_58%,#0c0b0a)]"></div>
 			{/if}
-		</section>
+			<div class="absolute inset-0 bg-linear-to-t from-black/75 via-black/10 to-transparent"></div>
+			<div class="absolute bottom-0 left-0 right-0 px-8 pb-9 text-white">
+				<p class="text-[0.85rem] tracking-[0.38em] text-stone-200 uppercase">Summer season</p>
+				<h3 class="mt-4 max-w-[12ch] font-serif text-5xl leading-[1]">
+					{recipe.title || 'Harvest Table Favorites'}
+				</h3>
+			</div>
+		</div>
 
-		<section class={cn('space-y-3 rounded-[0.95rem] border border-transparent p-1 sm:space-y-5 sm:rounded-2xl sm:border-white/50 sm:p-6', cardTheme.panel)}>
-			<h3 class={cn('text-[0.7rem]', cardTheme.sectionTitle)}>Method</h3>
-			{#if recipe.steps.length === 0}
-				<p class="rounded-xl border border-dashed border-muted-foreground/30 px-4 py-4 text-sm leading-7 text-muted-foreground sm:py-5 sm:text-base sm:leading-8">
-					Add your first step to outline how to cook the dish.
-				</p>
-			{:else}
-				<ol class="space-y-3.5 sm:space-y-6">
-					{#each recipe.steps as step, index (`${step}-${index}`)}
-						<li class="flex gap-2.5 text-sm leading-7 text-foreground/90 sm:gap-4 sm:text-base sm:leading-8">
-							<span
-								class={cn(
-									'mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold shadow-sm sm:mt-1 sm:size-8 sm:text-xs',
-									cardTheme.stepNumber
-								)}
-							>
-								{index + 1}
-							</span>
-							<span>{step}</span>
-						</li>
-					{/each}
-				</ol>
-			{/if}
-		</section>
-	</Card.Content>
+		<div class="flex flex-col px-6 py-6 sm:px-10 sm:py-8">
+			<div class="flex items-center justify-between gap-3">
+				<div class="flex flex-wrap gap-2">
+					<Badge.Badge variant="outline" class={cn('rounded-full border-0 px-4 py-1.5 text-[0.72rem] font-semibold tracking-[0.16em] uppercase shadow-none', cardTheme.accent)}>
+						{recipe.ingredients.length >= 6 ? 'Featured' : 'Fresh'}
+					</Badge.Badge>
+					<Badge.Badge variant="outline" class={cn('rounded-full border-0 px-4 py-1.5 text-[0.72rem] font-semibold tracking-[0.16em] uppercase shadow-none', cardTheme.accentAlt)}>
+						{recipe.theme}
+					</Badge.Badge>
+				</div>
+			</div>
+
+			<div class="mt-10">
+				<Card.Title class={cn('max-w-[11ch] text-[3.2rem] leading-[0.94] sm:text-[4.5rem]', cardTheme.title)}>
+					{recipe.title || 'Untitled recipe'}
+				</Card.Title>
+				<Card.Description class={cn('mt-8 max-w-[24rem] border-l-2 border-stone-200 pl-6 text-[1.05rem] leading-10 sm:text-[1.1rem]', cardTheme.description)}>
+					{recipe.description || 'Add a short description to introduce your dish and set the tone.'}
+				</Card.Description>
+			</div>
+
+			<div class={cn('mt-10 grid gap-6 border-y py-7 sm:grid-cols-3', cardTheme.rule)}>
+				<div>
+					<p class="text-[0.72rem] tracking-[0.22em] text-stone-500 uppercase">Servings</p>
+					<p class={cn('mt-2 text-3xl font-medium', cardTheme.meta)}>{recipe.servings ?? '-'}</p>
+				</div>
+				<div>
+					<p class="text-[0.72rem] tracking-[0.22em] text-stone-500 uppercase">Prep time</p>
+					<p class={cn('mt-2 text-3xl font-medium', cardTheme.meta)}>{recipe.prepMinutes ?? '-'} min</p>
+				</div>
+				<div>
+					<p class="text-[0.72rem] tracking-[0.22em] text-stone-500 uppercase">Cook time</p>
+					<p class={cn('mt-2 text-3xl font-medium', cardTheme.meta)}>{recipe.cookMinutes ?? '-'} min</p>
+				</div>
+			</div>
+
+			<div class="mt-10 grid gap-8 xl:grid-cols-2">
+				<section>
+					<h3 class={cn('border-b border-stone-200 pb-3 text-[0.88rem] font-semibold tracking-[0.26em] uppercase', cardTheme.sectionTitle)}>
+						Ingredients
+					</h3>
+					{#if recipe.ingredients.length === 0}
+						<p class="pt-5 text-sm leading-7 text-stone-500">Add your first ingredient to get started.</p>
+					{:else}
+						<ul class="space-y-4 pt-6">
+							{#each recipe.ingredients as ingredient, index (`${ingredient.name}-${index}`)}
+								<li class="flex gap-3 text-lg leading-8 text-stone-800">
+									<span class={cn('mt-3 inline-block size-2 shrink-0 rounded-full', cardTheme.bullet)}></span>
+									<span>{formatIngredient(ingredient)}</span>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</section>
+
+				<section>
+					<h3 class={cn('border-b border-stone-200 pb-3 text-[0.88rem] font-semibold tracking-[0.26em] uppercase', cardTheme.sectionTitle)}>
+						The Method
+					</h3>
+					{#if recipe.steps.length === 0}
+						<p class="pt-5 text-sm leading-7 text-stone-500">Add your first step to outline how to cook the dish.</p>
+					{:else}
+						<ol class="space-y-5 pt-6">
+							{#each recipe.steps as step, index (`${step}-${index}`)}
+								<li class="flex gap-4 text-lg leading-8 text-stone-800">
+									<span class={cn('font-semibold', cardTheme.stepNumber)}>{String(index + 1).padStart(2, '0')}</span>
+									<span>{step}</span>
+								</li>
+							{/each}
+						</ol>
+					{/if}
+				</section>
+			</div>
+		</div>
+	</div>
 </Card.Root>
